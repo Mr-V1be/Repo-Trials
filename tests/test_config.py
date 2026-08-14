@@ -70,8 +70,8 @@ class ConfigTests(unittest.TestCase):
             content = DEFAULT_CONFIG + "\n# tracked project customization\n"
             config.write_text(content, encoding="utf-8")
 
-            self.assertEqual(initialize_project(root), config)
-            self.assertEqual(initialize_project(root), config)
+            self.assertTrue(initialize_project(root).samefile(config))
+            self.assertTrue(initialize_project(root).samefile(config))
             self.assertEqual(config.read_text(encoding="utf-8"), content)
             exclude = root / ".git/info/exclude"
             self.assertEqual(exclude.read_text(encoding="utf-8").count("/.repotrials/"), 1)

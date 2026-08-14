@@ -289,8 +289,9 @@ def _is_within(path: Path, root: Path) -> bool:
 
 
 def _git(root: Path, *arguments: str, check: bool = True) -> subprocess.CompletedProcess[bytes]:
+    null_device = "NUL" if os.name == "nt" else "/dev/null"
     result = subprocess.run(
-        ("git", "-c", "core.hooksPath=NUL" if os.name == "nt" else "/dev/null", *arguments),
+        ("git", "-c", f"core.hooksPath={null_device}", *arguments),
         cwd=root,
         capture_output=True,
         check=False,

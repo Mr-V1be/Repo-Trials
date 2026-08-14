@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Allowed optional skipped/xfail cases while keeping every required F2P/P2P test strictly passing.
 - Rejected tasks whose setup creates a source path that the historical submission must add.
 - Made local and Harbor submission allowlists exact even for Git filenames containing glob metacharacters.
+- Made synthetic Git hook suppression use a valid platform-specific null-device configuration on both POSIX and Windows.
 - Pinned Docker validation execution to the declared Linux/amd64 target and initialized nested paths at the actual Git work-tree root.
 - Treated a missing local Harbor executable as informational because RepoTrials exports tasks for a downstream runner rather than invoking Harbor itself.
 

@@ -62,7 +62,7 @@ class CliTests(unittest.TestCase):
                 self.assertEqual(main(["--json", "init", str(nested)]), 0)
             payload = json.loads(stdout.getvalue())
 
-            self.assertEqual(Path(payload["config"]), root / "repotrials.toml")
+            self.assertTrue(Path(payload["config"]).samefile(root / "repotrials.toml"))
             self.assertTrue((root / ".repotrials/private").is_dir())
             self.assertFalse((nested / "repotrials.toml").exists())
             self.assertFalse((nested / ".repotrials").exists())
