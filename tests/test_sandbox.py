@@ -7,7 +7,9 @@ import tarfile
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
+from repotrials import sandbox as sandbox_module
 from repotrials.sandbox import (
     SandboxError,
     collect_submission_patch,
@@ -19,6 +21,23 @@ from repotrials.validation import check_patch_integrity
 
 
 class SandboxTests(unittest.TestCase):
+    def test_git_disables_hooks_with_a_complete_platform_config_pair(self) -> None:
+        completed = subprocess.CompletedProcess((), 0, stdout=b"", stderr=b"")
+        for os_name, null_device in (("posix", "/dev/null"), ("nt", "NUL")):
+            with (
+                self.subTest(os_name=os_name),
+                mock.patch.object(sandbox_module.os, "name", os_name),
+                mock.patch.object(
+                    sandbox_module.subprocess,
+                    "run",
+                    return_value=completed,
+                ) as run,
+            ):
+                sandbox_module._git(Path("workspace"), "status")
+
+            command = run.call_args.args[0]
+            self.assertEqual(command[:3], ("git", "-c", f"core.hooksPath={null_device}"))
+
     def test_rejects_archive_traversal(self) -> None:
         stream = io.BytesIO()
         with tarfile.open(fileobj=stream, mode="w") as archive:
