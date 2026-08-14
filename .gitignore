@@ -1,0 +1,26 @@
+# RepoTrials local state contains private code and benchmark oracles.
+.repotrials/
+repotrials.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+build/
+dist/
+htmlcov/
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Generated reports
+repotrials-report.html
+repotrials-report.json

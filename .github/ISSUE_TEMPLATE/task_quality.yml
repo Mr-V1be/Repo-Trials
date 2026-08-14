@@ -1,0 +1,66 @@
+name: Mined task quality
+description: Report an unfair, flaky, leaking, or incorrectly reconstructed task
+title: "[Task quality]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use sanitized metadata only. Do not publish an active task's hidden tests, gold patch, private prompt, repository URL, or commit identifiers.
+
+  - type: input
+    id: version
+    attributes:
+      label: RepoTrials version
+      placeholder: 0.1.0 / abc1234
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Primary failure category
+      options:
+        - Incorrect base/fixed reconstruction
+        - Incorrect implementation/test split
+        - No valid fail-to-pass signal
+        - Flaky test or environment
+        - Prompt is underspecified
+        - Tests enforce an unstated implementation detail
+        - Tests cover unrelated behavior
+        - Tests have insufficient coverage
+        - Gold or hidden-test leakage
+        - Scoring/verifier bypass
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Describe observable red/gold/no-op transitions, reason codes, or test categories without exposing verifier content.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Evaluation impact
+      description: Could this create a false pass, false failure, leakage, or only confusing diagnostics?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested filter or review check
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I did not include private repository or verifier material.
+          required: true
+        - label: I understand that a stable red/gold transition alone does not prove task fairness.
+          required: true

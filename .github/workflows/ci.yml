@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package and development tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check .
+
+      - name: Check formatting
+        run: python -m ruff format --check .
+
+      - name: Type-check
+        run: python -m mypy src/repotrials
+
+      - name: Run tests
+        run: python -m pytest --cov=repotrials --cov-report=term-missing
+
+      - name: Smoke-test CLI
+        run: repotrials --help
+
+      - name: Run end-to-end demo
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13' }}
+        run: python scripts/demo.py --output "${{ runner.temp }}/repotrials-demo"
+
+  package:
+    name: Build and inspect distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install packaging tools
+        run: python -m pip install --upgrade build twine
+
+      - name: Build wheel and source distribution
+        run: python -m build
+
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Verify source-distribution assets
+        run: |
+          python - <<'PY'
+          import glob
+          import tarfile
+
+          archive = glob.glob("dist/*.tar.gz")
+          assert len(archive) == 1, archive
+          with tarfile.open(archive[0], "r:gz") as source:
+              names = source.getnames()
+          required = (
+              "docs/configuration.md",
+              "schemas/task-public-v1.schema.json",
+              "scripts/demo.py",
+          )
+          missing = [item for item in required if not any(name.endswith("/" + item) for name in names)]
+          assert not missing, f"source distribution is missing: {missing}"
+          PY
+
+      - name: Smoke-test the built wheel
+        run: |
+          python -m venv "${{ runner.temp }}/repotrials-wheel"
+          "${{ runner.temp }}/repotrials-wheel/bin/python" -m pip install dist/*.whl
+          "${{ runner.temp }}/repotrials-wheel/bin/repotrials" --version

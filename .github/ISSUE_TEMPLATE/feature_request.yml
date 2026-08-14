@@ -1,0 +1,71 @@
+name: Feature request
+description: Propose a focused improvement or adapter
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the user problem before the proposed implementation. For language/test adapters, include a minimal public fixture and the structured output the adapter can rely on.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What cannot be done reliably today, and who needs it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest useful interface and expected CLI/schema impact.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Mining and reconstruction
+        - Validation and test parsing
+        - Review and task quality
+        - Agent execution
+        - Reporting and comparison
+        - Harbor export
+        - Language/test adapter
+        - Security and privacy
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: textarea
+    id: security
+    attributes:
+      label: Security and privacy impact
+      description: Does this change agent, verifier, vault, filesystem, subprocess, network, or secret boundaries?
+    validations:
+      required: true
+
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Test fixture or example
+      description: Link to or describe a minimal public example. Do not attach private repository data.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and the roadmap.
+          required: true
+        - label: I can help test or document this change.
+          required: false

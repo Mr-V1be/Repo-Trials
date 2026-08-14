@@ -1,0 +1,87 @@
+name: Bug report
+description: Report a reproducible RepoTrials defect
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Do not include secrets, private source, hidden tests, or vulnerability details. Security reports belong in the private process described in `SECURITY.md`.
+
+  - type: input
+    id: version
+    attributes:
+      label: RepoTrials version
+      description: Use a release version or exact Git commit.
+      placeholder: 0.1.0 / abc1234
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - Windows
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: Python 3.11.9
+    validations:
+      required: true
+
+  - type: input
+    id: command
+    attributes:
+      label: Command
+      description: The smallest RepoTrials command that reproduces the issue. Redact private paths and values.
+      placeholder: repotrials validate
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include a sanitized error and structured reason code when available.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Prefer a tiny disposable Git repository or fixture that can be shared publicly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Relevant test runner, shell, filesystem, or repository characteristics.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and pull requests.
+          required: true
+        - label: I removed credentials, private source, hidden tests, and gold patches.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true

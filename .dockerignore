@@ -1,0 +1,10 @@
+.git
+.github
+.repotrials
+.venv
+__pycache__
+*.pyc
+build
+dist
+htmlcov
+tests

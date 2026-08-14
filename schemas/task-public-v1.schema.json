@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:repotrials:schema:task-public:v1",
+  "title": "RepoTrials public task",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "task_id", "contract_sha256", "prompt", "base", "profile", "policy", "quality"],
+  "properties": {
+    "schema_version": {"const": "repotrials.task/v1"},
+    "task_id": {"type": "string", "pattern": "^rt_[a-z0-9]{8,32}$"},
+    "contract_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "prompt": {
+      "type": "object",
+      "required": ["title", "body", "visibility"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1},
+        "body": {"type": "string", "minLength": 1},
+        "visibility": {"enum": ["issue_only", "failing_log", "tests_visible"]}
+      },
+      "additionalProperties": false
+    },
+    "base": {
+      "type": "object",
+      "required": ["archive_sha256"],
+      "properties": {
+        "archive_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "image": {"type": "string"},
+        "platform": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "profile": {"type": "string", "minLength": 1},
+    "policy": {
+      "type": "object",
+      "required": ["network", "protected_paths", "submission_paths", "timeout_seconds"],
+      "properties": {
+        "network": {"enum": ["none", "provider-only", "public"]},
+        "protected_paths": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "submission_paths": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "timeout_seconds": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "quality": {
+      "type": "object",
+      "required": ["tier", "exposure"],
+      "properties": {
+        "tier": {"enum": ["auto", "verified"]},
+        "exposure": {"enum": ["private_unpublished", "public_post_model_release", "public_pre_model_release", "unknown"]},
+        "environment_fidelity": {"enum": ["locked", "inferred", "unknown"]}
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:repotrials:schema:task-private:v1",
+  "title": "RepoTrials private task oracle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "task_id", "provenance", "artifacts", "validation"],
+  "properties": {
+    "schema_version": {"const": "repotrials.oracle/v1"},
+    "task_id": {"type": "string"},
+    "provenance": {
+      "type": "object",
+      "required": ["base_commit", "fixed_commit", "reconstruction_method"],
+      "properties": {
+        "repository": {"type": "string"},
+        "base_commit": {"type": "string"},
+        "fixed_commit": {"type": "string"},
+        "reconstruction_method": {"enum": ["pr_base_head", "merge_first_parent", "single_parent"]},
+        "issue": {"type": ["integer", "null"]},
+        "pull_request": {"type": ["integer", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "object",
+      "required": ["base_archive", "hidden_test_patch", "gold_patch"],
+      "properties": {
+        "base_archive": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "hidden_test_patch": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+        "gold_patch": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "expected": {"type": "object"},
+    "validation": {
+      "type": "object",
+      "required": ["repetitions", "base_stable", "red_stable", "gold_stable", "gold_resolved", "noop_resolved"],
+      "properties": {
+        "repetitions": {"type": "integer", "minimum": 1},
+        "base_stable": {"type": "boolean"},
+        "red_stable": {"type": "boolean"},
+        "gold_stable": {"type": "boolean"},
+        "gold_resolved": {"type": "boolean"},
+        "noop_resolved": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    }
+  }
+}

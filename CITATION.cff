@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: >-
+  If you use RepoTrials in an evaluation, cite the exact software revision (or
+  source-archive SHA-256) and include the evaluated task IDs and run-group
+  identifiers in your report.
+title: RepoTrials
+type: software
+authors:
+  - name: PozziTiv4ik
+version: 0.1.0
+license: Apache-2.0
+repository-code: https://github.com/PozziTiv4ik/Repo-Trials
+url: https://github.com/PozziTiv4ik/Repo-Trials
+abstract: >-
+  RepoTrials is a local-first tool for mining a repository's Git history into
+  private coding-agent tasks with BASE/RED/GOLD validation,
+  hidden verifier artifacts, command-based agent execution, and structured
+  reports.
+keywords:
+  - software engineering agents
+  - coding agents
+  - benchmark generation
+  - repository mining
+  - reproducible evaluation

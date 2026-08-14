@@ -1,0 +1,13 @@
+include CHANGELOG.md
+include CITATION.cff
+include CODE_OF_CONDUCT.md
+include CONTRIBUTING.md
+include Dockerfile
+include LICENSE
+include Makefile
+include README.md
+include SECURITY.md
+recursive-include docs *.md *.svg
+recursive-include schemas *.json
+recursive-include scripts *.py
+recursive-include tests *.py
