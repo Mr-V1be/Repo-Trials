@@ -23,6 +23,7 @@ from repotrials.validation import check_patch_integrity
 class SandboxTests(unittest.TestCase):
     def test_git_disables_hooks_with_a_complete_platform_config_pair(self) -> None:
         completed = subprocess.CompletedProcess((), 0, stdout=b"", stderr=b"")
+        workspace = Path("workspace")
         for os_name, null_device in (("posix", "/dev/null"), ("nt", "NUL")):
             with (
                 self.subTest(os_name=os_name),
@@ -33,7 +34,7 @@ class SandboxTests(unittest.TestCase):
                     return_value=completed,
                 ) as run,
             ):
-                sandbox_module._git(Path("workspace"), "status")
+                sandbox_module._git(workspace, "status")
 
             command = run.call_args.args[0]
             self.assertEqual(command[:3], ("git", "-c", f"core.hooksPath={null_device}"))
