@@ -12,6 +12,7 @@
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/codeql.yml/badge.svg"></a>
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/releases/latest"><img alt="GitHub release" src="https://img.shields.io/github/v/release/PozziTiv4ik/Repo-Trials?sort=semver"></a>
+  <a href="https://github.com/users/PozziTiv4ik/packages/container/package/repo-trials"><img alt="GHCR container" src="https://img.shields.io/badge/container-ghcr.io-2496ED.svg?logo=docker&logoColor=white"></a>
   <a href="https://www.python.org/downloads/"><img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg"></a>
 </p>
@@ -123,6 +124,20 @@ RepoTrials is not on PyPI yet. Install the v0.1.0 wheel directly from GitHub Rel
 python -m pip install https://github.com/PozziTiv4ik/Repo-Trials/releases/download/v0.1.0/repotrials-0.1.0-py3-none-any.whl
 repotrials --help
 ```
+
+The public Linux/amd64 container includes Git and runs as an unprivileged user:
+
+```bash
+docker run --rm ghcr.io/pozzitiv4ik/repo-trials:0.1.0 --version
+```
+
+For an immutable pull, use the verified OCI digest instead of the version tag:
+
+```bash
+docker run --rm ghcr.io/pozzitiv4ik/repo-trials@sha256:292bf655e882762f2affc3c4c7d1a36ef2a949d2b272ad8d24678601e2516701 --version
+```
+
+The published image carries BuildKit provenance and an SBOM. See the [package page](https://github.com/users/PozziTiv4ik/packages/container/package/repo-trials) and [successful publication run](https://github.com/PozziTiv4ik/Repo-Trials/actions/runs/31875804841).
 
 To inspect or contribute to the source, clone the repository and create a virtual environment:
 

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Published a public Linux/amd64 CLI image to GHCR with SBOM, maximum BuildKit provenance, immutable source and base-image pins, pre-push runtime smoke tests, and digest verification.
+
+### Security
+
+- Made the container runtime explicitly non-root with UID/GID 10001, a fixed home directory, and a writable `/workspace`; pinned the Dockerfile frontend and default Python base image by digest.
+
 ## [0.1.0] - 2026-08-15
 
 ### Added
