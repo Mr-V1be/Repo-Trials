@@ -1,0 +1,167 @@
+# TEMPLATE — copy this into your own repository.
+#
+# This workflow is intentionally manual-only (`workflow_dispatch`). It never runs
+# on a push, a pull request, or a schedule in this repository, so it cannot start
+# an agent or spend model tokens by accident.
+#
+# It demonstrates the recommended pattern from docs/ci.md: run two agent
+# configurations against the same task set in the same job, compare them
+# immediately, and fail the job when the candidate regresses.
+#
+# Before this works you must change three things:
+#   1. "Restore the validated task set" — put repotrials.toml and an accepted
+#      .repotrials/ task set on the runner. See docs/ci.md.
+#   2. The agent — this template installs mini-swe-agent and uses the bundled
+#      `mini-swe-agent` recipe, chosen because it honours RT_MODEL and so makes
+#      the two cohorts genuinely different. Swap in another recipe, or your own
+#      `agent-command`. See docs/agents.md.
+#   3. The action ref below — pin PozziTiv4ik/Repo-Trials to a full commit SHA.
+#
+# Read the security section of docs/ci.md first. This executes your repository's
+# own test suite and an arbitrary agent command as the runner user.
+
+name: Example — agent regression gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline-model:
+        description: "Model for the baseline cohort (passed to the recipe as RT_MODEL)"
+        type: string
+        required: true
+        default: "baseline-model-id"
+      candidate-model:
+        description: "Model for the candidate cohort (passed to the recipe as RT_MODEL)"
+        type: string
+        required: true
+        default: "candidate-model-id"
+      fail-on-regression:
+        description: "Regression budget in percentage points, for example 10pp"
+        type: string
+        required: true
+        default: "10pp"
+
+permissions:
+  contents: read
+
+# One agent evaluation at a time: concurrent runs would interleave writes into
+# the same .repotrials store.
+concurrency:
+  group: repotrials-agent-regression
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    name: Evaluate ${{ inputs.candidate-model }} against ${{ inputs.baseline-model }}
+    runs-on: ubuntu-latest
+    # Prefer a self-hosted ephemeral runner for private code:
+    # runs-on: [self-hosted, ephemeral, repotrials]
+    timeout-minutes: 120
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+        with:
+          # The agent process is not confined to its sealed workspace, so do not
+          # leave the workflow token in .git/config where it could read it.
+          persist-credentials: false
+
+      # -----------------------------------------------------------------------
+      # REPLACE THIS STEP.
+      #
+      # The action evaluates an already-validated task set; it does not mine or
+      # validate. docs/ci.md describes the three supported arrangements:
+      # a persistent runner, rebuilding the task set in the job, or actions/cache.
+      #
+      # Caching .repotrials/ places hidden tests and gold patches into
+      # GitHub-managed storage. Only do that when you accept the exposure.
+      # -----------------------------------------------------------------------
+      - name: Restore the validated task set
+        run: |
+          set -euo pipefail
+          if [ ! -f repotrials.toml ] || [ ! -d .repotrials ]; then
+            echo "::error title=Template::Replace this step with one that restores repotrials.toml and .repotrials/ onto the runner. See docs/ci.md."
+            exit 1
+          fi
+          echo "Task set present."
+
+      # RepoTrials never installs or contacts an agent. Whatever the recipe
+      # invokes has to be on PATH before the action runs.
+      - name: Install the agent
+        run: |
+          set -euo pipefail
+          pipx install mini-swe-agent
+          mini --help > /dev/null
+
+      - name: Run the baseline configuration
+        id: baseline
+        # Pin to a full commit SHA in your own repository.
+        uses: PozziTiv4ik/Repo-Trials@main
+        env:
+          # Scope provider credentials to the steps that need them. The agent
+          # inherits this entire environment. Keep only the key your model uses.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # The recipe reads RT_MODEL. The action's `model` input below is
+          # recorded as metadata only and is never passed to the agent, so both
+          # are set and both say the same thing.
+          RT_MODEL: ${{ inputs.baseline-model }}
+        with:
+          # A wrapper bundled with the action. Use `agent-command` instead to
+          # point at your own script; it must be an absolute path, because the
+          # working directory of the attempt is the sealed task workspace.
+          agent-recipe: mini-swe-agent
+          agent-name: baseline
+          model: ${{ inputs.baseline-model }}
+          report-output: repotrials-report-baseline
+          unsafe-local: 'true'
+
+      - name: Run the candidate configuration
+        id: candidate
+        uses: PozziTiv4ik/Repo-Trials@main
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RT_MODEL: ${{ inputs.candidate-model }}
+        with:
+          agent-recipe: mini-swe-agent
+          agent-name: candidate
+          model: ${{ inputs.candidate-model }}
+          report-output: repotrials-report-candidate
+          # Both cohorts come from the same store in the same job, so their task
+          # sets, digests, and execution profiles match and `compare` accepts them.
+          baseline-run-group: ${{ steps.baseline.outputs.run-group }}
+          fail-on-regression: ${{ inputs.fail-on-regression }}
+          unsafe-local: 'true'
+
+      - name: Upload the reports
+        # Runs even when the regression gate failed the job — that is exactly
+        # when you want to read the report.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repotrials-reports
+          # Only the report directories. Never upload .repotrials/, which holds
+          # hidden tests, gold patches, source snapshots, and raw logs.
+          path: |
+            repotrials-report-baseline/
+            repotrials-report-candidate/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Print the result
+        if: always()
+        env:
+          BASELINE_GROUP: ${{ steps.baseline.outputs.run-group }}
+          CANDIDATE_GROUP: ${{ steps.candidate.outputs.run-group }}
+          BASELINE_RESOLVED: ${{ steps.baseline.outputs.resolved }}
+          BASELINE_TRIALS: ${{ steps.baseline.outputs.trials }}
+          CANDIDATE_RESOLVED: ${{ steps.candidate.outputs.resolved }}
+          CANDIDATE_TRIALS: ${{ steps.candidate.outputs.trials }}
+          DELTA_PP: ${{ steps.candidate.outputs.delta-pp }}
+          REGRESSED: ${{ steps.candidate.outputs.regressed }}
+        run: |
+          set -euo pipefail
+          echo "baseline  ${BASELINE_GROUP}: ${BASELINE_RESOLVED}/${BASELINE_TRIALS} trials resolved"
+          echo "candidate ${CANDIDATE_GROUP}: ${CANDIDATE_RESOLVED}/${CANDIDATE_TRIALS} trials resolved"
+          echo "delta     ${DELTA_PP:-n/a} pp (regressed: ${REGRESSED:-unknown})"

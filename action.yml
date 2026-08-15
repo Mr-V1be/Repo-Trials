@@ -1,0 +1,563 @@
+name: "RepoTrials agent evaluation"
+description: >-
+  Run a command-based coding agent against a repository's already-validated RepoTrials
+  task set, write JSON and HTML reports, and optionally fail the job on a pass@k regression.
+author: "PozziTiv4ik"
+
+branding:
+  icon: "git-commit"
+  color: "purple"
+
+inputs:
+  python-version:
+    description: "Python interpreter used to install and run RepoTrials. RepoTrials requires 3.11 or newer."
+    required: false
+    default: "3.13"
+  agent-command:
+    description: >-
+      Command that drives the coding agent. Required unless agent-recipe is set; supplying both
+      is an error. RepoTrials tokenises it with shlex and executes it without a shell, in the
+      sealed task workspace. Use the '{workspace}' and '{instruction}' placeholders, or read the
+      REPOTRIALS_* environment variables. Wrap the command in 'sh -c "..."' when you genuinely
+      need shell features.
+    required: true
+  agent-recipe:
+    description: >-
+      Name of a wrapper bundled with RepoTrials under recipes/, for example 'claude-code',
+      'codex', or 'aider', used instead of writing your own agent-command. The wrapper still
+      needs the agent binary on PATH and its provider credentials in the environment.
+      See docs/agents.md for the full list and what each invocation was verified against.
+    required: false
+    default: ""
+  agent-name:
+    description: >-
+      Label recorded on every attempt. RepoTrials derives a unique run-group identifier from it;
+      the label itself is not unique across runs, so always compare and report by run group.
+    required: true
+  model:
+    description: "Model identifier recorded alongside the run. Metadata only; RepoTrials never contacts a model provider."
+    required: false
+    default: ""
+  attempts:
+    description: >-
+      Attempts per task. Must equal the attempt budget frozen into the task contracts at
+      validation time. Leave empty to use the frozen budget, which is almost always correct.
+    required: false
+    default: ""
+  tasks:
+    description: "Optional task IDs to restrict the run to, separated by newlines or commas. Empty means every accepted task."
+    required: false
+    default: ""
+  baseline-run-group:
+    description: >-
+      Run group to compare this run against. It must already exist in the .repotrials store on
+      this runner; see docs/ci.md for the three ways to arrange that. Empty skips the comparison.
+    required: false
+    default: ""
+  fail-on-regression:
+    description: >-
+      Regression budget in percentage points, for example '5' or '5pp'. The job fails when the
+      candidate pass@k falls more than this far below the baseline. Requires baseline-run-group.
+      Empty reports the delta without gating.
+    required: false
+    default: ""
+  working-directory:
+    description: "Directory inside the target repository. RepoTrials searches upward from here for repotrials.toml."
+    required: false
+    default: "."
+  report-output:
+    description: >-
+      Directory that receives report.json and report.html. Relative paths resolve against
+      working-directory. The default deliberately sits outside .repotrials/ so that uploading it
+      as an artifact cannot publish hidden tests or gold patches.
+    required: false
+    default: "repotrials-ci-report"
+  unsafe-local:
+    description: >-
+      Must be the literal string 'true' to proceed. Local execution is not a sandbox: the agent
+      command and the repository's own test suite run as the runner user and inherit every
+      environment variable, secret, and network route available to the job. Read docs/ci.md and
+      docs/threat-model.md before enabling this on a hosted runner.
+    required: false
+    default: "false"
+
+outputs:
+  run-group:
+    description: "Unique run-group identifier for this run. Use it as the baseline of a later comparison."
+    value: ${{ steps.agent-run.outputs.run-group }}
+  resolved:
+    description: "Number of resolved attempts (attempt-level count, matching the CLI's resolved/trials message)."
+    value: ${{ steps.agent-run.outputs.resolved }}
+  trials:
+    description: "Total number of attempts executed in this run group."
+    value: ${{ steps.agent-run.outputs.trials }}
+  report-html:
+    description: "Absolute path to the generated self-contained HTML report."
+    value: ${{ steps.agent-report.outputs.report-html }}
+  report-json:
+    description: "Absolute path to the generated JSON report."
+    value: ${{ steps.agent-report.outputs.report-json }}
+  delta-pp:
+    description: "Candidate pass@k minus baseline pass@k, in percentage points. Empty when no comparison ran."
+    value: ${{ steps.comparison.outputs.delta-pp }}
+  regressed:
+    description: "'true' when the comparison crossed the fail-on-regression threshold, otherwise 'false'."
+    value: ${{ steps.comparison.outputs.regressed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check the local-execution opt-in and the task set
+      shell: bash
+      env:
+        UNSAFE_LOCAL: ${{ inputs.unsafe-local }}
+        AGENT_COMMAND: ${{ inputs.agent-command }}
+        AGENT_RECIPE: ${{ inputs.agent-recipe }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        ATTEMPTS: ${{ inputs.attempts }}
+        FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+        BASELINE_RUN_GROUP: ${{ inputs.baseline-run-group }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        REPORT_OUTPUT: ${{ inputs.report-output }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+
+        if [ "${UNSAFE_LOCAL}" != "true" ]; then
+          echo "::error title=RepoTrials::unsafe-local is '${UNSAFE_LOCAL}'. This action runs the repository's own test suite and an arbitrary agent command directly on the runner, with the runner's files, secrets, and network. Set unsafe-local: 'true' to accept that, or export tasks with 'repotrials export-harbor' and run them in a real sandbox instead."
+          exit 1
+        fi
+
+        # Exactly one of agent-command and agent-recipe.  The recipe path is
+        # resolved here and handed on through GITHUB_ENV; agent-command itself is
+        # never routed through GITHUB_ENV, because a newline in it would corrupt
+        # the file.  It reaches the run step directly as a step environment value.
+        recipe_path=""
+        if [ -n "${AGENT_COMMAND}" ] && [ -n "${AGENT_RECIPE}" ]; then
+          echo "::error title=RepoTrials::set agent-command or agent-recipe, not both."
+          exit 1
+        fi
+
+        if [ -z "${AGENT_COMMAND}" ]; then
+          if [ -z "${AGENT_RECIPE}" ]; then
+            echo "::error title=RepoTrials::set agent-command, or agent-recipe to use a wrapper bundled with RepoTrials."
+            exit 1
+          fi
+          if ! [[ "${AGENT_RECIPE}" =~ ^[a-z0-9][a-z0-9._-]*$ ]]; then
+            echo "::error title=RepoTrials::agent-recipe must be a bare recipe name such as 'claude-code', got '${AGENT_RECIPE}'."
+            exit 1
+          fi
+          recipe_file="${ACTION_PATH}/recipes/${AGENT_RECIPE}.sh"
+          if [ ! -f "${recipe_file}" ]; then
+            available="$(cd "${ACTION_PATH}/recipes" 2>/dev/null && ls -1 ./*.sh 2>/dev/null | sed 's|^\./||; s|\.sh$||' | tr '\n' ' ')"
+            echo "::error title=RepoTrials::no bundled recipe named '${AGENT_RECIPE}'. Available: ${available:-none}"
+            exit 1
+          fi
+          # Honour the recipe's own shebang when the executable bit survived the
+          # checkout, and fall back to an explicit interpreter when it did not.
+          # RepoTrials splits the command with shlex, so the path is double-quoted
+          # to survive a runner whose work directory contains a space.
+          if [ -x "${recipe_file}" ]; then
+            recipe_path="\"${recipe_file}\""
+          else
+            recipe_path="sh \"${recipe_file}\""
+          fi
+        fi
+
+        if [ -z "${AGENT_NAME}" ]; then
+          echo "::error title=RepoTrials::agent-name is empty."
+          exit 1
+        fi
+
+        if [ ! -d "${WORKING_DIRECTORY}" ]; then
+          echo "::error title=RepoTrials::working-directory '${WORKING_DIRECTORY}' does not exist. Check out the repository before this action."
+          exit 1
+        fi
+
+        if [ -n "${ATTEMPTS}" ] && ! [[ "${ATTEMPTS}" =~ ^[1-9][0-9]*$ ]]; then
+          echo "::error title=RepoTrials::attempts must be a positive integer, got '${ATTEMPTS}'."
+          exit 1
+        fi
+
+        if [ -n "${FAIL_ON_REGRESSION}" ]; then
+          if ! [[ "${FAIL_ON_REGRESSION}" =~ ^[0-9]+(\.[0-9]+)?(pp)?$ ]]; then
+            echo "::error title=RepoTrials::fail-on-regression must be a number of percentage points, for example '5' or '5pp', got '${FAIL_ON_REGRESSION}'."
+            exit 1
+          fi
+          if [ -z "${BASELINE_RUN_GROUP}" ]; then
+            echo "::error title=RepoTrials::fail-on-regression requires baseline-run-group; there is nothing to regress against."
+            exit 1
+          fi
+        fi
+
+        # RepoTrials searches upward from --root for repotrials.toml.  Reproduce that
+        # search here so a missing task set fails with CI-specific advice instead of the
+        # CLI's local-workstation advice to run `repotrials init`.
+        probe="$(cd "${WORKING_DIRECTORY}" && pwd)"
+        config_dir=""
+        while true; do
+          if [ -f "${probe}/repotrials.toml" ]; then
+            config_dir="${probe}"
+            break
+          fi
+          parent="$(dirname "${probe}")"
+          if [ "${parent}" = "${probe}" ]; then
+            break
+          fi
+          probe="${parent}"
+        done
+
+        if [ -z "${config_dir}" ]; then
+          echo "::error title=RepoTrials::no repotrials.toml found at or above '${WORKING_DIRECTORY}'. This action evaluates an already-validated task set; it does not mine or validate. Restore repotrials.toml and .repotrials/ onto the runner first - see docs/ci.md."
+          exit 1
+        fi
+
+        if [ ! -d "${config_dir}/.repotrials" ]; then
+          echo "::error title=RepoTrials::found '${config_dir}/repotrials.toml' but no '${config_dir}/.repotrials/' state directory, so there are no accepted tasks to run. See docs/ci.md for how to persist a validated task set across CI runs."
+          exit 1
+        fi
+
+        # Resolve the report directory now so every later step agrees on one absolute path.
+        case "${REPORT_OUTPUT}" in
+          /*) report_path="${REPORT_OUTPUT}" ;;
+          *)  report_path="$(cd "${WORKING_DIRECTORY}" && pwd)/${REPORT_OUTPUT}" ;;
+        esac
+
+        case "${report_path}" in
+          "${config_dir}/.repotrials"|"${config_dir}/.repotrials"/*)
+            echo "::warning title=RepoTrials::report-output resolves inside '${config_dir}/.repotrials/', which also holds hidden tests, gold patches, and raw logs. Upload report.json and report.html by name, never the whole directory."
+            ;;
+        esac
+
+        {
+          echo "REPOTRIALS_CI_CONFIG_DIR=${config_dir}"
+          echo "REPOTRIALS_CI_REPORT_PATH=${report_path}"
+          echo "REPOTRIALS_CI_RECIPE_PATH=${recipe_path}"
+        } >> "${GITHUB_ENV}"
+
+        echo "RepoTrials task set: ${config_dir}"
+        if [ -n "${recipe_path}" ]; then
+          echo "Bundled recipe: ${recipe_path}"
+        fi
+
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install RepoTrials from the action source
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        # RepoTrials is not on PyPI yet, so install the copy of the source that GitHub
+        # checked out for this action.  The package has no runtime dependencies.
+        python -m pip install --upgrade pip
+        python -m pip install "${ACTION_PATH}"
+        repotrials --version
+
+    - name: Run the agent against the sealed task set
+      id: agent-run
+      shell: bash
+      env:
+        AGENT_COMMAND: ${{ inputs.agent-command }}
+        AGENT_NAME: ${{ inputs.agent-name }}
+        MODEL: ${{ inputs.model }}
+        ATTEMPTS: ${{ inputs.attempts }}
+        TASKS: ${{ inputs.tasks }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        # The preflight step guaranteed exactly one of these is set, and resolved
+        # the recipe to a path inside the action checkout.
+        effective_command="${AGENT_COMMAND:-${REPOTRIALS_CI_RECIPE_PATH:-}}"
+        if [ -z "${effective_command}" ]; then
+          echo "::error title=RepoTrials::no agent command resolved; set agent-command or agent-recipe."
+          exit 1
+        fi
+
+        # Every value is passed as a separate array element, so nothing here is
+        # re-parsed by the shell.  RepoTrials tokenises --agent-command itself and
+        # executes the agent without a shell.
+        arguments=(--root "${WORKING_DIRECTORY}" --json run)
+        arguments+=(--agent-command "${effective_command}")
+        arguments+=(--name "${AGENT_NAME}")
+        arguments+=(--unsafe-local)
+
+        if [ -n "${MODEL}" ]; then
+          arguments+=(--model "${MODEL}")
+        fi
+
+        if [ -n "${ATTEMPTS}" ]; then
+          arguments+=(--attempts "${ATTEMPTS}")
+        fi
+
+        if [ -n "${TASKS}" ]; then
+          while IFS= read -r task_id; do
+            task_id="$(printf '%s' "${task_id}" | tr -d '[:space:]')"
+            if [ -n "${task_id}" ]; then
+              arguments+=(--task "${task_id}")
+            fi
+          done <<< "$(printf '%s' "${TASKS}" | tr ',' '\n')"
+        fi
+
+        run_json="${RUNNER_TEMP}/repotrials-run.json"
+        if ! repotrials "${arguments[@]}" > "${run_json}"; then
+          echo "::error title=RepoTrials::'repotrials run' failed. The JSON error above on stderr names the cause."
+          exit 1
+        fi
+
+        python - "${run_json}" <<'PY'
+        import json
+        import os
+        import re
+        import sys
+
+        SAFE = re.compile(r"\A[A-Za-z0-9._-]{1,128}\Z")
+
+
+        def emit(name: str, value: object) -> None:
+            text = str(value)
+            if "\n" in text or "\r" in text:
+                raise SystemExit(f"refusing to emit multi-line output {name!r}")
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+                handle.write(f"{name}={text}\n")
+
+
+        with open(sys.argv[1], encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        run_group = str(payload["run_group"])
+        if not SAFE.match(run_group):
+            raise SystemExit(f"unexpected run group identifier: {run_group!r}")
+
+        emit("run-group", run_group)
+        emit("resolved", int(payload["resolved"]))
+        emit("trials", int(payload["trials"]))
+        emit("resolved-tasks", int(payload["resolved_tasks"]))
+        emit("task-count", int(payload["task_count"]))
+        emit("attempts", int(payload["attempts"]))
+        emit("resolve-rate", f"{float(payload['resolve_rate']):.6f}")
+
+        print(
+            f"run {run_group}: {payload['resolved']}/{payload['trials']} trials resolved, "
+            f"{payload['resolved_tasks']}/{payload['task_count']} tasks resolved "
+            f"(pass@{payload['aggregation']['k']})"
+        )
+        PY
+
+    - name: Write the JSON and HTML report
+      id: agent-report
+      shell: bash
+      env:
+        RUN_GROUP: ${{ steps.agent-run.outputs.run-group }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        report_json="${RUNNER_TEMP}/repotrials-report-result.json"
+        if ! repotrials \
+          --root "${WORKING_DIRECTORY}" \
+          --json report "${RUN_GROUP}" \
+          --output "${REPOTRIALS_CI_REPORT_PATH}" > "${report_json}"; then
+          echo "::error title=RepoTrials::'repotrials report' failed for run group ${RUN_GROUP}."
+          exit 1
+        fi
+
+        python - "${report_json}" <<'PY'
+        import json
+        import os
+        import sys
+
+
+        def emit(name: str, value: object) -> None:
+            text = str(value)
+            if "\n" in text or "\r" in text:
+                raise SystemExit(f"refusing to emit multi-line output {name!r}")
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+                handle.write(f"{name}={text}\n")
+
+
+        with open(sys.argv[1], encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        interval = payload["confidence_interval"]
+        emit("report-html", payload["html"])
+        emit("report-json", payload["json"])
+        emit("resolve-rate", f"{float(payload['resolve_rate']):.6f}")
+        emit("ci-low", f"{float(interval['low']):.6f}")
+        emit("ci-high", f"{float(interval['high']):.6f}")
+
+        print(f"report written to {payload['html']}")
+        PY
+
+    - name: Compare against the baseline run group
+      id: comparison
+      shell: bash
+      env:
+        BASELINE_RUN_GROUP: ${{ inputs.baseline-run-group }}
+        CANDIDATE_RUN_GROUP: ${{ steps.agent-run.outputs.run-group }}
+        FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${BASELINE_RUN_GROUP}" ]; then
+          {
+            echo "compared=false"
+            echo "delta-pp="
+            echo "regressed=false"
+          } >> "${GITHUB_OUTPUT}"
+          echo "No baseline-run-group supplied; skipping the comparison."
+          exit 0
+        fi
+
+        arguments=(--root "${WORKING_DIRECTORY}" --json compare)
+        arguments+=("${BASELINE_RUN_GROUP}" "${CANDIDATE_RUN_GROUP}")
+        if [ -n "${FAIL_ON_REGRESSION}" ]; then
+          arguments+=(--fail-on-regression "${FAIL_ON_REGRESSION}")
+        fi
+
+        # 'compare' exits 1 when the regression threshold is crossed.  Capture that
+        # instead of failing here, so the outputs are still published and the job
+        # fails on a single, clearly-labelled gate step at the end.
+        compare_json="${RUNNER_TEMP}/repotrials-compare.json"
+        status=0
+        repotrials "${arguments[@]}" > "${compare_json}" || status=$?
+
+        if [ "${status}" -ne 0 ] && [ ! -s "${compare_json}" ]; then
+          echo "::error title=RepoTrials::'repotrials compare' failed. RepoTrials refuses to compare cohorts whose task sets, digests, attempt shapes, or execution profiles differ; the JSON error above on stderr names the mismatch."
+          exit 1
+        fi
+
+        python - "${compare_json}" <<'PY'
+        import json
+        import os
+        import sys
+
+
+        def emit(name: str, value: object) -> None:
+            text = str(value)
+            if "\n" in text or "\r" in text:
+                raise SystemExit(f"refusing to emit multi-line output {name!r}")
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
+                handle.write(f"{name}={text}\n")
+
+
+        with open(sys.argv[1], encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        emit("compared", "true")
+        emit("delta-pp", f"{float(payload['delta_pp']):.4f}")
+        emit("regressed", "true" if payload["regression"] else "false")
+        emit("baseline-rate", f"{float(payload['baseline_rate']):.6f}")
+        emit("candidate-rate", f"{float(payload['candidate_rate']):.6f}")
+        emit("paired-tasks", int(payload["paired_tasks"]))
+        emit("wins", int(payload["wins"]))
+        emit("losses", int(payload["losses"]))
+
+        print(
+            f"{payload['baseline']} -> {payload['candidate']}: "
+            f"{payload['baseline_rate']:.1%} -> {payload['candidate_rate']:.1%} "
+            f"({payload['delta_pp']:+.1f} pp over {payload['paired_tasks']} paired task(s))"
+        )
+        PY
+
+    - name: Write the job summary
+      if: always() && steps.agent-run.outputs.run-group != ''
+      shell: bash
+      env:
+        AGENT_NAME: ${{ inputs.agent-name }}
+        MODEL: ${{ inputs.model }}
+        RUN_GROUP: ${{ steps.agent-run.outputs.run-group }}
+        RESOLVED_TASKS: ${{ steps.agent-run.outputs.resolved-tasks }}
+        TASK_COUNT: ${{ steps.agent-run.outputs.task-count }}
+        RESOLVED: ${{ steps.agent-run.outputs.resolved }}
+        TRIALS: ${{ steps.agent-run.outputs.trials }}
+        ATTEMPTS: ${{ steps.agent-run.outputs.attempts }}
+        RESOLVE_RATE: ${{ steps.agent-run.outputs.resolve-rate }}
+        CI_LOW: ${{ steps.agent-report.outputs.ci-low }}
+        CI_HIGH: ${{ steps.agent-report.outputs.ci-high }}
+        COMPARED: ${{ steps.comparison.outputs.compared }}
+        BASELINE_RUN_GROUP: ${{ inputs.baseline-run-group }}
+        BASELINE_RATE: ${{ steps.comparison.outputs.baseline-rate }}
+        CANDIDATE_RATE: ${{ steps.comparison.outputs.candidate-rate }}
+        DELTA_PP: ${{ steps.comparison.outputs.delta-pp }}
+        PAIRED_TASKS: ${{ steps.comparison.outputs.paired-tasks }}
+        REGRESSED: ${{ steps.comparison.outputs.regressed }}
+      run: |
+        set -euo pipefail
+        python - <<'PY'
+        import os
+
+        def value(name: str) -> str:
+            return os.environ.get(name, "").strip()
+
+        def percent(name: str) -> str:
+            raw = value(name)
+            return f"{float(raw):.1%}" if raw else "n/a"
+
+        lines = [
+            "## RepoTrials",
+            "",
+            f"Agent `{value('AGENT_NAME')}`"
+            + (f", model `{value('MODEL')}`" if value("MODEL") else "")
+            + f", run group `{value('RUN_GROUP')}`.",
+            "",
+            "| Metric | Value |",
+            "| --- | --- |",
+            f"| Tasks resolved (pass@{value('ATTEMPTS') or 'k'}) | "
+            f"{value('RESOLVED_TASKS')} / {value('TASK_COUNT')} |",
+            f"| Resolve rate | {percent('RESOLVE_RATE')} |",
+        ]
+
+        if value("CI_LOW") and value("CI_HIGH"):
+            lines.append(
+                f"| 95% confidence interval | {percent('CI_LOW')} to {percent('CI_HIGH')} |"
+            )
+
+        lines.append(f"| Attempts resolved | {value('RESOLVED')} / {value('TRIALS')} |")
+
+        if value("COMPARED") == "true":
+            delta = value("DELTA_PP")
+            lines += [
+                "",
+                f"Compared against baseline `{value('BASELINE_RUN_GROUP')}` "
+                f"on {value('PAIRED_TASKS')} paired task(s).",
+                "",
+                "| Baseline | Candidate | Delta |",
+                "| --- | --- | --- |",
+                f"| {percent('BASELINE_RATE')} | {percent('CANDIDATE_RATE')} | "
+                f"{float(delta):+.1f} pp |" if delta else "| n/a | n/a | n/a |",
+            ]
+            if value("REGRESSED") == "true":
+                lines += ["", "**Regression threshold crossed.**"]
+
+        lines += [
+            "",
+            "Rates are empirical task-level pass@k over the attempts actually run, not a "
+            "combinatorial estimator. A small task set produces a wide interval; read it "
+            "before reading the point estimate.",
+            "",
+        ]
+
+        summary = os.environ.get("GITHUB_STEP_SUMMARY")
+        if summary:
+            with open(summary, "a", encoding="utf-8") as handle:
+                handle.write("\n".join(lines) + "\n")
+        PY
+
+    - name: Enforce the regression gate
+      if: steps.comparison.outputs.regressed == 'true'
+      shell: bash
+      env:
+        BASELINE_RUN_GROUP: ${{ inputs.baseline-run-group }}
+        CANDIDATE_RUN_GROUP: ${{ steps.agent-run.outputs.run-group }}
+        DELTA_PP: ${{ steps.comparison.outputs.delta-pp }}
+        FAIL_ON_REGRESSION: ${{ inputs.fail-on-regression }}
+      run: |
+        set -euo pipefail
+        echo "::error title=RepoTrials regression::${CANDIDATE_RUN_GROUP} scored ${DELTA_PP} pp against baseline ${BASELINE_RUN_GROUP}, crossing the ${FAIL_ON_REGRESSION} pp budget."
+        exit 1
