@@ -1,0 +1,84 @@
+# OpenSSF Scorecard: automated supply-chain posture analysis.
+#
+# Results are uploaded to the repository's code-scanning view and, because
+# `publish_results` is enabled, to the public OpenSSF API. That public record is
+# what makes the Scorecard badge verifiable by a third party rather than a claim
+# made by this repository about itself.
+#
+# ---------------------------------------------------------------------------
+# NOTES FOR THE REPOSITORY OWNER
+# ---------------------------------------------------------------------------
+# - `publish_results: true` only works on a public repository. It publishes the
+#   check results, not repository contents.
+# - The Branch-Protection check cannot read branch-protection settings with the
+#   default GITHUB_TOKEN. To score it, create a fine-grained personal access
+#   token with read-only `administration` permission on this repository, store
+#   it as the `SCORECARD_TOKEN` secret, and pass it as `repo_token` below.
+#   Leaving it unset is fine: that single check is reported as inconclusive.
+# - After the first successful run, the badge URL is
+#   https://api.securityscorecards.dev/projects/github.com/PozziTiv4ik/Repo-Trials/badge
+#   and the detailed report is at
+#   https://scorecard.dev/viewer/?uri=github.com/PozziTiv4ik/Repo-Trials
+#   Do not add the badge to README.md until a run has actually published a score.
+#
+# Action pinning: `ossf/scorecard-action` publishes no moving major tag, so it
+# is pinned to a full commit SHA with the version in a trailing comment. That is
+# also the form Scorecard's own Pinned-Dependencies check wants for every action
+# in this repository; Dependabot updates SHA pins and their comments together.
+
+name: Scorecard
+
+on:
+  push:
+    branches: [main]
+  branch_protection_rule:
+  schedule:
+    - cron: "41 6 * * 2"
+  workflow_dispatch:
+
+permissions: read-all
+
+concurrency:
+  group: scorecard-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
+      # Upload the SARIF result to code scanning.
+      security-events: write
+      # Publish the result to the OpenSSF API with a verifiable OIDC identity.
+      id-token: write
+      # Read workflow run data for the CI-Tests and other workflow checks.
+      actions: read
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+          # repo_token: ${{ secrets.SCORECARD_TOKEN }}
+
+      - name: Upload SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload result to code scanning
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: results.sarif

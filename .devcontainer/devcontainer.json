@@ -1,0 +1,67 @@
+// RepoTrials development container.
+//
+// Works with VS Code Dev Containers, the devcontainer CLI, and GitHub
+// Codespaces ("Code" -> "Codespaces" -> "Create codespace on ...").
+//
+// The container is a development environment, not an evaluation sandbox.
+// RepoTrials executes historical setup/test commands and agent commands as
+// arbitrary code; `--unsafe-local` is still required and still means what
+// docs/threat-model.md says it means. Treat this container as a disposable
+// machine with no credentials you care about.
+{
+  "name": "RepoTrials",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.13-bookworm",
+
+  "features": {
+    // RepoTrials has a Docker validation backend
+    // (`validation.backend = "docker"`); docker-in-docker makes it usable
+    // from inside this container without mounting the host socket.
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // Mining reconstructs historical trees; a full clone with real history is
+  // required for anything beyond the synthetic demo repository.
+  "onCreateCommand": "python -m pip install --upgrade pip && python -m pip install -e \".[dev]\"",
+
+  "postAttachCommand": "printf '%s\\n' '' 'RepoTrials dev container ready.' '' '  python scripts/demo.py    # full mine -> validate -> run -> report loop, a few seconds, no API key' '  make check                # ruff check + ruff format --check + mypy --strict + pytest' '  repotrials --help         # CLI reference' '' 'The demo writes a self-contained report.html you can open in the editor.' 'Docs: docs/architecture.md, docs/methodology.md, docs/threat-model.md' ''",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestArgs": ["tests"],
+        "mypy-type-checker.args": ["--strict"],
+        "files.insertFinalNewline": true,
+        "files.trimTrailingWhitespace": true,
+        "editor.formatOnSave": true,
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.codeActionsOnSave": {
+            "source.organizeImports.ruff": "explicit"
+          }
+        }
+      }
+    }
+  },
+
+  "remoteUser": "vscode",
+
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}

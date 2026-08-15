@@ -1,0 +1,119 @@
+# Documentation site: build the MkDocs Material site and deploy it to GitHub Pages.
+#
+# ---------------------------------------------------------------------------
+# ONE-TIME MANUAL SETUP (repository owner)
+# ---------------------------------------------------------------------------
+# Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+# Until that switch is flipped once by hand, the deploy job fails with a
+# "Pages is not enabled" error and no site is published. Nothing in this file
+# can set it; it is a repository setting.
+#
+# This workflow expects `mkdocs.yml` at the repository root and builds with
+# `--strict`, so a broken internal link or an unknown config key fails the run
+# instead of publishing a damaged site. If `requirements-docs.txt` exists it is
+# installed as well, which is the place to declare any extra MkDocs plugins the
+# site configuration needs.
+#
+# Action pinning: pinned to major tags here; full commit SHAs are preferred and
+# Dependabot already tracks the github-actions ecosystem.
+
+name: Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Only one Pages deployment at a time, and never cancel one midway: a cancelled
+# deploy can leave the published site in a partial state.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      # `configure-pages` queries the Pages API to resolve the public URL. The
+      # official Pages starter workflows grant `pages: write` for this; keeping
+      # it job-scoped rather than top-level is what matters for token hygiene.
+      pages: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          # mkdocs-material's git-revision-date plugin, if enabled, needs full
+          # history to resolve per-page timestamps.
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Check for the site configuration
+        run: |
+          if [ ! -f mkdocs.yml ]; then
+            echo "::error file=mkdocs.yml::mkdocs.yml is missing; the documentation site cannot be built." >&2
+            exit 1
+          fi
+
+      - name: Install MkDocs Material
+        # Pinned to the 9.x line so a major-version release of the theme cannot
+        # silently change the published site. Dependabot proposes the bump.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "mkdocs>=1.6,<2" "mkdocs-material>=9,<10"
+
+      - name: Install extra documentation requirements
+        # `requirements-docs.txt` is the documentation toolchain declared by the
+        # site itself; it exists so `mkdocs.yml` can add plugins without editing
+        # this workflow. Absence is not an error.
+        run: |
+          for candidate in requirements-docs.txt docs/requirements.txt; do
+            if [ -f "$candidate" ]; then
+              echo "Installing $candidate"
+              python -m pip install -r "$candidate"
+            fi
+          done
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build site
+        run: python -m mkdocs build --strict --site-dir site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

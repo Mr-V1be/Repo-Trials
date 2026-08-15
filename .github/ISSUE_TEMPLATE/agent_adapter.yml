@@ -1,0 +1,106 @@
+name: Agent adapter
+description: Request or contribute a non-interactive invocation for a command-line coding agent
+title: "[Agent adapter]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        RepoTrials has no plugin system. Any agent that can be started from a terminal, edit files in a working directory, and exit is already supported through `--agent-command`. This form collects the exact non-interactive invocation so it can be documented for everyone else.
+
+        Do not include API keys, tokens, private prompts, or private repository content. Use placeholders such as `$AGENT_API_KEY`.
+
+  - type: input
+    id: agent
+    attributes:
+      label: Agent name
+      description: The product name, and the executable if it differs.
+      placeholder: Example Agent (binary `exagent`)
+    validations:
+      required: true
+
+  - type: input
+    id: homepage
+    attributes:
+      label: Homepage or documentation URL
+      description: Prefer the page that documents the non-interactive/headless mode.
+      placeholder: https://example.com/docs/headless
+    validations:
+      required: true
+
+  - type: input
+    id: agent_version
+    attributes:
+      label: Agent version checked
+      description: Exact version string. An invocation without a version stamp cannot be trusted later.
+      placeholder: exagent 1.4.2
+    validations:
+      required: true
+
+  - type: textarea
+    id: invocation
+    attributes:
+      label: Non-interactive invocation
+      description: The full command as it would be passed to `repotrials run --agent-command`. Use `{workspace}` and `{instruction}` where RepoTrials should substitute paths, or read `REPOTRIALS_WORKSPACE` and `REPOTRIALS_INSTRUCTION_PATH` from the environment.
+      placeholder: exagent run --non-interactive --auto-approve --file {instruction}
+    validations:
+      required: true
+
+  - type: textarea
+    id: write_access
+    attributes:
+      label: How the agent is allowed to write files
+      description: Name the flag or environment variable that disables approval prompts. Without it many agents only propose edits, which scores as a uniform failure and looks like a weak agent rather than a misconfiguration.
+      placeholder: --auto-approve; without it the agent prints a diff and exits without touching the working tree.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: credentials
+    attributes:
+      label: Credentials required
+      options:
+        - No credentials (local model or offline)
+        - Model-provider API key
+        - Vendor account or subscription login
+        - Both a vendor account and a provider key
+        - Unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: verification
+    attributes:
+      label: Verification level
+      description: Be precise. An unverified invocation is still useful, but it must be labelled as one.
+      options:
+        - Verified end to end through `repotrials run` on a real task
+        - Ran the agent non-interactively, but not through RepoTrials
+        - Taken from vendor documentation only, not executed
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Observed behavior
+      description: Exit codes, whether progress goes to stdout or stderr, structured-output flags, whether it commits on its own, and whether it needs a wall-clock timeout. Sanitize paths and identifiers.
+
+  - type: textarea
+    id: caveats
+    attributes:
+      label: Known caveats
+      description: Auto-commit behavior that pollutes the working tree, hangs in headless mode, implicit config or MCP loading from the target repository, per-run cost, or anything that would make results non-reproducible.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and the current agent documentation.
+          required: true
+        - label: I removed API keys, tokens, private prompts, and private repository content.
+          required: true
+        - label: The invocation does not let the agent run the hidden tests or read the vault; an agent that can execute the oracle invalidates the score.
+          required: true
+        - label: I understand that RepoTrials runs agent commands without a sandbox, that `--unsafe-local` is an acknowledgement of that, and that this request does not imply the agent is safe to run on an untrusted repository.
+          required: true
