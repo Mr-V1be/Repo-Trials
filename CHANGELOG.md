@@ -22,6 +22,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Configuration reference, explicit source-install guidance, and dependency-update configuration.
 - Source-distribution manifest for schemas and project documentation.
 - CI coverage gate plus smoke checks for the end-to-end demo and built wheel/source distributions.
+- `repotrials demo` subcommand that runs the bundled end-to-end pipeline in a throwaway directory without configuration, credentials, or network access.
+- Agent-integration cookbook plus a `recipes/` directory of command templates for command-line coding agents, with each recipe marked verified or unverified.
+- Composite GitHub Action and a copyable consumer workflow for gating a change on an agent pass-rate regression.
+- Published documentation site generated from the existing `docs/` sources.
+- Tag-triggered release workflow using PyPI Trusted Publishing, with distribution build and metadata validation.
+- OpenSSF Scorecard workflow reporting supply-chain posture.
+- Development container definition for local Docker and GitHub Codespaces.
+- Report screenshot, social preview, and comparison assets under `docs/assets/`.
+- Agent-adapter issue form for proposing, correcting, or retiring a command-line agent recipe.
+- Comparison page covering current public coding-agent benchmarks, task generators, and harnesses, including where each is the better choice.
 
 ### Changed
 

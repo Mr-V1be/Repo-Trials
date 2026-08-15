@@ -5,188 +5,126 @@
 <h1 align="center">RepoTrials</h1>
 
 <p align="center">
-  <strong>Turn bugs your team already fixed into a regression suite for every coding agent.</strong>
+  <strong>SWE-bench for your own repository: mined from your git log, graded on your machine.</strong>
 </p>
 
 <p align="center">
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://pozzitiv4ik.github.io/Repo-Trials/"><img alt="Documentation" src="https://img.shields.io/badge/docs-pozzitiv4ik.github.io-8d83ff.svg"></a>
   <a href="https://www.python.org/downloads/"><img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg"></a>
+  <a href="https://codespaces.new/PozziTiv4ik/Repo-Trials"><img alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg" height="20"></a>
 </p>
 
-RepoTrials turns a repository's own Git history into private, repeatable coding-agent evaluations. Public leaderboards tell you which agent wins in general; RepoTrials tells you which configuration can be trusted on your codebase.
+RepoTrials finds the commits where your team fixed a bug and added a test, rewinds the repository to the moment before the fix, hides the test, and scores any command-line agent on whether it can pass it. Public leaderboards tell you which agent wins in general. RepoTrials tells you which configuration can be trusted on your codebase — and it can do that because the engine is public while your test split, hidden tests, and reference patches never leave your disk.
 
 ```text
-real fix commit → sealed historical task → equal agent trials → hidden verifier → evidence
+real fix commit → sealed task → equal trials → hidden verifier → evidence
 ```
 
-### Why teams use it
+## Try it in 60 seconds
 
-- **Behavioral grading:** real JUnit `FAIL_TO_PASS` and `PASS_TO_PASS`, never gold-diff similarity.
-- **Leak-resistant workspaces:** agents receive a one-commit synthetic repository without future Git objects, hidden tests, or the human solution.
-- **Auditable artifacts:** explicit settings, content-addressed vault objects, versioned JSON Schemas, and machine-readable run records.
-- **Local by default:** private source and oracle data stay under `.repotrials/`; nothing is uploaded by RepoTrials.
-- **Runner-friendly:** invoke any command-based agent locally or export a standalone task with a separate [Harbor](https://github.com/harbor-framework/harbor) verifier.
+No config, no API key, no Docker, no clone. This builds a real two-commit Git repository, mines it, runs BASE/RED/GOLD validation, then puts a deliberately broken agent and a working agent against the same sealed task:
 
-> **Project status:** pre-release v0.1. RepoTrials is under active development. Its command names and task schema may change before the first stable release. Do not use current scores as a security or procurement certification.
+```bash
+uvx --with pytest --from git+https://github.com/PozziTiv4ik/Repo-Trials repotrials demo
+```
 
-## What v0.1 does
+`--with pytest` is there because the *generated fixture repository* runs pytest, not because RepoTrials does. RepoTrials itself has zero third-party runtime dependencies.
 
-RepoTrials is a local-first Python tool that:
+It finishes in a few seconds and echoes every CLI call it makes. The last lines it prints:
 
-1. scans local Git history for changes that modify both implementation and Python tests;
-2. reconstructs the repository immediately before a candidate fix;
-3. separates the historical change into a hidden test patch and a reference, or "gold", patch;
-4. validates the candidate with BASE, RED, and GOLD executions (RED is the no-op task state);
-5. keeps verifier material outside the agent workspace in a local vault;
-6. runs any agent that can be invoked as a command;
-7. writes machine-readable JSON and human-readable HTML reports; and
-8. exports accepted tasks in a Harbor-compatible layout.
+```text
+noop-agent  0/1 trials resolved
+fix-agent   1/1 trials resolved
+delta       +100 percentage points
 
-The v0.1 pipeline uses path and patch-size filters before execution. A candidate is useful only when the old code fails the reconstructed tests and the historical fix passes them. Automatic validation is not a fairness decision; accepted task sets still need human review.
+Demo complete: /tmp/repotrials-demo-q_9hibqw
+Open report:   /tmp/repotrials-demo-q_9hibqw/demo-repository/.repotrials/reports/demo/report.html
+```
 
-## What v0.1 does not claim
+That HTML file is a self-contained report: pass@k with a bootstrap 95% confidence interval, and a per-attempt table with fail-to-pass counts, integrity result, failure kind, and runtime. A complete benchmark loop, end to end, before you have decided whether to trust the project.
 
-- It does not prove that every mined task is fair or fully specified. Human review remains part of the trusted workflow.
-- It does not yet accept every behaviorally valid patch shape. v0.1 freezes the editable source-file set to paths touched by the historical human fix, so a solution that adds a new helper path is rejected even when its behavior would be correct.
-- It does not guarantee freedom from model-training contamination, especially for public repositories.
-- It does not support every language, test runner, monorepo, service dependency, or historical build environment.
-- It does not reconstruct a complete Git checkout. v0.1 snapshots with `git archive`: `export-ignore` may omit tracked files, while submodule contents, hydrated Git LFS objects, and repository symlinks are unsupported. Review and reject candidates that depend on them.
-- It is not a hardened sandbox for hostile code. Repository tests and agent commands are arbitrary programs; run them in an isolated environment.
-- It does not upload repositories, tasks, or results to a hosted service by default.
+![The self-contained HTML report produced by the bundled demo: task, attempt, and pass@k tiles above a per-attempt table](docs/assets/report-preview.png)
 
-See [the methodology](docs/methodology.md) for acceptance rules and [the threat model](docs/threat-model.md) before evaluating untrusted agents or repositories.
+<sub>The bundled demo mines a single task, so the report above shows one row. A real repository produces one row per task per attempt.</sub>
 
-## Why another SWE evaluation tool?
+![RepoTrials quickstart replayed in a terminal: init, doctor, mine, candidates, validate, two agent runs, compare, report](docs/assets/terminal-demo.svg)
 
-RepoTrials complements existing projects rather than replacing them:
-
-| Project | Primary purpose | How RepoTrials differs |
-|---|---|---|
-| [SWE-bench](https://github.com/SWE-bench/SWE-bench) | Evaluate agents on a maintained public corpus of real GitHub issues | RepoTrials generates a private corpus from one repository's own history |
-| [SWE-rebench](https://github.com/SWE-rebench) | Continuously collect large, cross-repository executable datasets | RepoTrials optimizes for local ownership, reviewability, and repository-specific comparison |
-| [SWE-smith](https://github.com/SWE-bench/SWE-smith) | Generate large-scale training tasks, including synthetic breakages | RepoTrials v0.1 mines historical human fixes and keeps the verifier private |
-| [Harbor](https://github.com/harbor-framework/harbor) | Run agent evaluations and RL environments in standardized sandboxes | RepoTrials creates and validates repository-specific tasks and can export them to Harbor |
-| [RepoAgentBench](https://github.com/HumphreySun98/repoagentbench) | Turn merged pull requests into local, replayable agent benchmarks with built-in agent adapters | RepoTrials mines local Git history without requiring a GitHub PR and emphasizes independent BASE/RED/GOLD validation plus strict cohort compatibility |
-| [Superconductor](https://www.superconductor.com/benchmark) | Run a hosted benchmark from selected real PRs; multiple LLM judges compare quality, cost, and time | RepoTrials is a local benchmark-as-code workflow with test-transition grading and operator-owned artifacts |
-| [Sigmabench](https://sigmabench.com/) | Provide a managed public leaderboard and own-codebase benchmarking service for accuracy, consistency, and speed | RepoTrials keeps task mining, validation, execution records, and comparison gates local and inspectable |
-
-The important distinction is ownership: RepoTrials' engine can be public while a team's test split, hidden tests, and reference patches remain local.
-
-RepoTrials' specific wedge is a private-by-default, local benchmark-as-code workflow: deterministic test-based BASE/RED/GOLD checks, frozen task contracts and digests, repeated validation, and a strict cohort gate before comparison. It does not try to replace hosted benchmark services or turn its results into a security certification.
-
-## Requirements
-
-- Git
-- Python 3.11 or newer
-- the dependencies needed to install and test the target repository
-- an isolated machine, VM, or container when running code you do not fully trust
-
-The portable v0.1 evaluation contract targets Linux/amd64. The CLI can be installed and exercised on Windows or macOS, but a local validation there is not evidence of equivalence to the exported Linux image; use matching Docker validation before comparison or Harbor export.
-
-Harbor and third-party coding agents are optional and are not bundled.
-The RepoTrials core has zero third-party runtime dependencies; contributor tools live in the `[dev]` extra.
-
-## Install from source
-
-RepoTrials is not presented as a published package yet. Clone the repository, create a virtual environment, and install the core package:
+No `uv`? Clone and install instead — same result:
 
 ```bash
 git clone https://github.com/PozziTiv4ik/Repo-Trials.git
 cd Repo-Trials
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install .
-repotrials --help
+python -m venv .venv && source .venv/bin/activate
+python -m pip install ".[dev]"   # [dev] only because the fixture repo runs pytest
+repotrials demo
 ```
 
-For development, install `python -m pip install -e ".[dev]"` instead.
+Full walkthrough, including Windows and pointing it at your own repository: [docs/quickstart.md](docs/quickstart.md).
 
-On Windows PowerShell, use this activation command in place of `source .venv/bin/activate`:
+## How it works
 
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
+RepoTrials scans local Git history for commits that changed implementation **and** Python tests together, reconstructs the tree immediately before the fix, and splits the commit into a hidden test patch and a reference "gold" patch. It then proves the task is worth using by executing it: the old code must pass its own tests, fail once the hidden tests are added, and pass once the historical fix is applied.
 
-## Quickstart
+The hidden tests, the gold patch, and the raw logs go into a local content-addressed vault. `repotrials vault verify` hash-checks every object.
 
-Run RepoTrials from the target repository. Start with a disposable clone: validation reconstructs historical states and executes their tests.
+![RepoTrials pipeline and trust boundary: nine stages from Git history to report, with only a base tree export entering the agent workspace and only a working-tree patch leaving it](docs/assets/pipeline.svg)
+
+**The trust boundary is the point.** The agent receives a `git archive` export of the base tree wrapped in a fresh one-commit synthetic repository: no later history, no original commit IDs, no remotes, no gold patch, no hidden tests. Exactly two things cross the boundary — a base tree going in, a working-tree diff coming back. Grading happens afterwards, in a separate verifier workspace the agent never saw, using evaluator-owned commands.
+
+That separation defends the oracle against a normally-behaving agent. It is not a sandbox against a hostile one; see [the threat model](docs/threat-model.md).
+
+## Point it at any coding agent
+
+`--agent-command` is the whole integration surface. No plugin, no SDK, no adapter class. RepoTrials never contacts a model provider itself — your agent does.
 
 ```bash
-cd /path/to/your/repository
-
-# Create local configuration and a private working area.
-repotrials init
-
-# Review repotrials.toml: especially setup, test command, and path globs.
-
-# Check Git, repository state, and configured optional runners.
-repotrials doctor
-
-# Discover historical candidate fixes.
-repotrials mine
-repotrials candidates
-
-# Execute BASE/RED/GOLD validation, create auto-tier tasks, and inspect them.
-# RED is the historical no-op state: base code plus the hidden test patch.
-repotrials validate --accept --unsafe-local
-repotrials review
-
-# After inspecting a task, promote it to the human-reviewed tier.
-repotrials review --verify <task-id>
+repotrials run --agent-command "$PWD/recipes/claude-code.sh" --name claude-code --unsafe-local
 ```
 
-On a large history, use `repotrials mine --limit 100` or `--since <git-date>` for the first curation pass, then expand deliberately.
+| Agent | Wrapper | What the wrapper runs |
+|---|---|---|
+| Claude Code | `recipes/claude-code.sh` | `claude --bare -p "<task>" --allowedTools "Read,Edit,Bash" --permission-mode acceptEdits` |
+| OpenAI Codex CLI | `recipes/codex.sh` | `codex exec --sandbox workspace-write --ephemeral --skip-git-repo-check "<task>"` |
+| Cursor CLI | `recipes/cursor-agent.sh` | `cursor-agent -p --force --output-format text "<task>"` |
+| Aider | `recipes/aider.sh` | `aider --message "<task>" --yes-always --no-auto-commits --no-auto-test` |
+| Amp | `recipes/amp.sh` | `amp -x "<task>"` |
+| mini-swe-agent | `recipes/mini-swe-agent.sh` | `mini -t "<task>" -y --exit-immediately -m <model>` |
 
-`--unsafe-local` acknowledges that validation executes historical setup and tests with your host permissions. Use `--backend docker` with a qualified image to avoid that host-local path; Docker still is not a hardened boundary for hostile code.
+Seventeen wrappers ship in [`recipes/`](recipes/README.md), plus `generic.sh` as a five-line template for your own scaffold.
 
-The plain `review` table is a triage view, not a full review interface. Use `repotrials --json review` plus the recorded candidate, validation, and source diff when applying the [human review rubric](docs/methodology.md#human-review-rubric). `--verify` records a local quality tier and timestamp; v0.1 does not collect a reviewer identity, rationale, or signature.
+**Honesty note:** those invocations were read from each vendor's published non-interactive reference in August 2026. **None of them has been executed end to end against a RepoTrials task by this project** — the only agents exercised in CI are the two synthetic ones in the bundled demo. Treat a run of all zeros as a wiring bug until you have proven otherwise; the report's failure-kind column tells you which.
 
-Keep `.repotrials/` out of the target repository's commits; it may contain proprietary source snapshots, hidden tests, gold patches, and raw logs.
+[docs/agents.md](docs/agents.md) documents the execution contract in full: the four `REPOTRIALS_*` environment variables, the `{workspace}` and `{instruction}` placeholders, why there is no shell in front of your command, every failure kind, and how to turn two runs into a defensible comparison.
 
-Integrity-check the content-addressed objects at any time with `repotrials vault verify`.
+## Use it in CI
 
-See the [configuration reference](docs/configuration.md) before running validation on a nontrivial repository.
+A composite action ([`action.yml`](action.yml)) runs the agent, writes the reports, compares against a baseline run group, and fails the job when the candidate loses more ground than you allow:
 
-After accepting tasks, invoke a coding agent through a normal command and build reports:
-
-```bash
-repotrials run --agent-command "<command>" --name <label> --unsafe-local
-repotrials report <run-group>
-repotrials compare <baseline-run-group> <candidate-run-group>
+```yaml
+- uses: actions/checkout@v6
+- uses: PozziTiv4ik/Repo-Trials@main        # pin to a full commit SHA
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  with:
+    agent-recipe: claude-code
+    agent-name: candidate
+    baseline-run-group: ${{ steps.baseline.outputs.run-group }}
+    fail-on-regression: '5pp'
+    unsafe-local: 'true'
 ```
 
-`--unsafe-local` is a deliberate acknowledgement that the command is not sandboxed: it inherits the invoking user's host access and effective network. For an isolated downstream run, configure tasks for Harbor, revalidate them, and use `export-harbor` instead.
+The action runs and reports; it does not mine, validate, or accept tasks, because those need human judgement. `report.json` and `report.html` are safe to publish. `.repotrials/` is not — it holds hidden tests, gold patches, and source snapshots.
 
-`run` prints a unique run-group identifier. Prefer that identifier for reports and comparisons. A durable group manifest is written before the first attempt and marked complete only after every expected result is stored; incomplete groups are rejected. A reused agent label can match several historical groups and is rejected as an ambiguous cohort. A bare `repotrials report` works only while the store contains exactly one run group.
+See [docs/ci.md](docs/ci.md) for getting the task set onto a runner, the security consequences on a hosted runner, and [a copy-pasteable workflow](.github/workflows/example-agent-regression.yml).
 
-Export accepted tasks for use with Harbor:
+## Why teams use it
 
-```bash
-repotrials export-harbor --output .repotrials/exports/harbor
-```
-
-The v0.1 export targets stable Harbor v0.20.0 task schema 1.3. A bounded `[[verifier.collect]]` hook writes the complete Git diff to `/tmp/agent.patch`, anchored to a sealed baseline SHA that is unchanged even if the agent creates commits. Harbor transfers that single patch into a separate no-network verifier, which rejects any path outside the task's exact frozen submission allowlist; it does not transfer the raw agent workspace. See [task and result formats](docs/task-format.md#harbor-export) for the exact handoff and image assumptions.
-
-Run `repotrials <command> --help` before automation. The CLI is still pre-release, and the help text is authoritative for flags and paths.
-
-### Run the complete demo
-
-The demo dynamically creates a real two-commit Git fixture and exercises the public CLI from mining through comparison and structural Harbor export. Install the development extra first because the generated target repository uses pytest:
-
-```bash
-python -m pip install -e ".[dev]"
-python scripts/demo.py
-```
-
-It runs one deliberate no-op and one fixing agent, then leaves a self-contained report in the printed temporary directory. The demo requires no model API key and is also useful as an installation smoke test.
-
-```text
-noop-agent   0/1 resolved
-fix-agent    1/1 resolved
-delta       +100 percentage points
-```
+- **Behavioral grading.** Real JUnit `FAIL_TO_PASS` and `PASS_TO_PASS` transitions, never gold-diff similarity. A patch that looks nothing like the human fix scores exactly the same as one that matches it character for character.
+- **Leak-resistant workspaces.** Agents receive a one-commit synthetic repository without future Git objects, hidden tests, or the human solution.
+- **Auditable artifacts.** Explicit settings, content-addressed vault objects, four versioned JSON Schemas, and machine-readable run records. `compare` refuses two cohorts whose task sets, digests, attempt shapes, or execution profiles differ, rather than quietly averaging them.
+- **Local by default.** Private source and oracle data stay under `.repotrials/`; nothing is uploaded by RepoTrials. For real isolation, `export-harbor` writes the sealed task with a separate no-network [Harbor](https://github.com/harbor-framework/harbor) verifier.
 
 ## The validation contract
 
@@ -205,46 +143,69 @@ The score is behavioral rather than a comparison with the gold diff. As a conser
 
 Execution establishes a reproducible signal; it does not by itself establish that the issue description and tests are aligned. Candidates intended for comparison should be reviewed before acceptance.
 
-## Typical workflow
+## Requirements and install
 
-```text
-Git history
-    -> static candidate discovery
-    -> historical reconstruction
-    -> patch split
-    -> BASE/RED/GOLD validation
-    -> human review
-    -> private task set
-    -> agent runs
-    -> JSON/HTML reports or Harbor export
+Git, Python 3.11 or newer, whatever the target repository needs to install and test itself, and an isolated machine, VM, or container for code you do not fully trust. Harbor and third-party coding agents are optional and are not bundled. The RepoTrials core has zero third-party runtime dependencies; contributor tools live in the `[dev]` extra.
+
+The portable v0.1 evaluation contract targets Linux/amd64. The CLI installs and runs on Windows and macOS, but a local validation there is not evidence of equivalence to the exported Linux image; use matching Docker validation before comparison or Harbor export.
+
+RepoTrials is not published on PyPI. Install from source:
+
+```bash
+git clone https://github.com/PozziTiv4ik/Repo-Trials.git
+cd Repo-Trials
+python -m venv .venv && source .venv/bin/activate
+python -m pip install .
+repotrials --help
 ```
 
-More detail is available in:
+Then, in a **disposable clone** of the repository you want to measure — validation reconstructs historical states and executes their tests:
 
-- [Architecture](docs/architecture.md)
-- [Mining and validation methodology](docs/methodology.md)
-- [Task and result formats](docs/task-format.md)
-- [Configuration reference](docs/configuration.md)
-- [Threat model](docs/threat-model.md)
-- [Roadmap](docs/roadmap.md)
+```bash
+repotrials init                  # write repotrials.toml and .repotrials/
+                                 # review setup, test command, and path globs
+repotrials doctor                # check Git, Docker, Harbor, repository, state
+repotrials mine --limit 100      # discover historical candidate fixes
+repotrials validate --accept --unsafe-local
+repotrials review                # triage, then `review --verify <task-id>`
+repotrials run --agent-command "<command>" --name <label> --unsafe-local
+repotrials report <run-group>
+repotrials compare <baseline-run-group> <candidate-run-group>
+```
 
-## Interpreting results
+`--unsafe-local` is a deliberate acknowledgement that historical setup, historical tests, and the agent command are not sandboxed: they inherit the invoking user's host access and network. `validate --backend docker` narrows the blast radius for the validation half, but Docker is not a hardened boundary for hostile code either. For an isolated agent run, use `export-harbor` and execute in a sandbox provider that is an actual boundary.
 
-Each attempt receives a binary resolved/not-resolved result. `report` then computes empirical task-level `pass@k`: a task is resolved when any of its `k` recorded attempts resolves it, and the primary rate is the macro fraction of resolved tasks. This is the observed result for the attempts actually run, not a combinatorial estimator from a larger sample. Partial fail-to-pass progress, regressions, runtime, and failure categories remain diagnostic signals.
+Keep `.repotrials/` out of the target repository's commits. `run` prints a unique run-group identifier; use that for reports and comparisons, never the agent label, which can match several historical groups and is rejected as ambiguous.
 
-The short message printed immediately by `run` is an attempt-level `resolved/trials` count. Use the run-group report for the canonical task-level aggregate.
+Long form: [quickstart](docs/quickstart.md) · [configuration reference](docs/configuration.md) · [FAQ](docs/faq.md).
 
-Always record the complete evaluation configuration alongside a score:
+## How it compares
 
-- model and model revision;
-- agent/scaffold version;
-- prompt and tool configuration;
-- token and wall-clock budget;
-- the exact run-group identifier plus task-ID-to-content-digest and contract-digest mappings;
-- RepoTrials version; and
-- operating system and test environment.
+RepoTrials complements existing projects rather than replacing them. Most of them are older, larger, and far more externally validated.
 
-The comparator requires one run group per side plus identical task sets, portable task-content and task-contract digests, attempt shapes, and recorded execution profiles. Model/provider settings outside that recorded profile still require operator review. See [methodology](docs/methodology.md#scoring-and-comparison).
+| Project | Primary purpose | How RepoTrials differs |
+|---|---|---|
+| [SWE-bench](https://github.com/SWE-bench/SWE-bench) | Evaluate agents on a maintained public corpus of real GitHub issues | RepoTrials generates a private corpus from one repository's own history |
+| [SWE-rebench](https://github.com/SWE-rebench) | Continuously collect large, cross-repository executable datasets | RepoTrials optimizes for local ownership, reviewability, and repository-specific comparison |
+| [SWE-smith](https://github.com/SWE-bench/SWE-smith) | Generate large-scale training tasks, including synthetic breakages | RepoTrials v0.1 mines historical human fixes and keeps the verifier private |
+| [Harbor](https://github.com/harbor-framework/harbor) | Run agent evaluations and RL environments in standardized sandboxes | RepoTrials creates and validates repository-specific tasks and can export them to Harbor |
+| [RepoAgentBench](https://github.com/HumphreySun98/repoagentbench) | Turn merged pull requests into local, replayable agent benchmarks | RepoTrials mines local Git history without requiring a GitHub PR, and emphasizes independent BASE/RED/GOLD validation plus strict cohort compatibility |
+
+The reasonable posture is one public benchmark for general capability plus one private repository-specific set for transfer — not one instead of the other. [docs/comparison.md](docs/comparison.md) covers hosted services, polyglot benchmarks, and the cases where another tool is simply the better choice.
+
+> **Project status:** pre-release v0.1. RepoTrials is under active development. Its command names and task schema may change before the first stable release. Do not use current scores as a security or procurement certification.
+
+## What v0.1 does not claim
+
+- It does not prove that every mined task is fair or fully specified. Human review remains part of the trusted workflow.
+- It does not yet accept every behaviorally valid patch shape. v0.1 freezes the editable source-file set to paths touched by the historical human fix, so a solution that adds a new helper path is rejected even when its behavior would be correct.
+- It does not guarantee freedom from model-training contamination, especially for public repositories.
+- It does not support every language, test runner, monorepo, service dependency, or historical build environment.
+- It does not reconstruct a complete Git checkout. v0.1 snapshots with `git archive`: `export-ignore` may omit tracked files, while submodule contents, hydrated Git LFS objects, and repository symlinks are unsupported. Review and reject candidates that depend on them.
+- It is not a hardened sandbox for hostile code. Repository tests and agent commands are arbitrary programs; run them in an isolated environment.
+- It does not upload repositories, tasks, or results to a hosted service by default.
+
+Automatic validation is not a fairness decision. Validated tasks land in tier `auto`, not `verified`; promotion is a separate human command, and v0.1 records a tier and a timestamp but no reviewer identity, rationale, or signature. See [the methodology](docs/methodology.md) for acceptance rules and the [human review rubric](docs/methodology.md#human-review-rubric).
 
 ## Privacy and safety
 
@@ -258,9 +219,23 @@ RepoTrials is local-first, but local does not automatically mean confidential or
 
 Use a dedicated clone, remove credentials, disable unnecessary network access, impose resource limits, and read [SECURITY.md](SECURITY.md) before running third-party code.
 
+## Interpreting results
+
+Each attempt receives a binary resolved/not-resolved result. `report` computes empirical task-level `pass@k`: a task is resolved when any of its `k` recorded attempts resolves it, and the primary rate is the macro fraction of resolved tasks. This is the observed result for the attempts actually run, not a combinatorial estimator from a larger sample. Reports print a deterministic bootstrap 95% confidence interval and the task count next to it, precisely so a four-task result looks like a four-task result.
+
+The short message printed by `run` is an attempt-level `resolved/trials` count. Use the run-group report for the canonical task-level aggregate.
+
+Record the complete evaluation configuration alongside any score you keep: model and model revision, agent/scaffold version, prompt and tool configuration, token and wall-clock budget, the run-group identifier plus task-content and task-contract digests, the RepoTrials version, and the operating system and test environment. The comparator enforces the mechanical half of that list; model and provider settings outside the recorded execution profile still require operator review. See [methodology](docs/methodology.md#scoring-and-comparison).
+
+## Documentation
+
+[Quickstart](docs/quickstart.md) · [Agents](docs/agents.md) · [CI](docs/ci.md) · [FAQ](docs/faq.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md) · [Methodology](docs/methodology.md) · [Task and result formats](docs/task-format.md) · [Threat model](docs/threat-model.md) · [Comparison](docs/comparison.md) · [Roadmap](docs/roadmap.md) · [Releasing](docs/releasing.md)
+
+Run `repotrials <command> --help` before automating anything. The CLI is pre-release, and the help text is authoritative for flags and paths.
+
 ## Contributing
 
-Bug reports, task-quality cases, documentation improvements, and narrowly scoped adapters are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+Bug reports, task-quality cases, documentation improvements, and narrowly scoped adapters are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and follow the [Code of Conduct](CODE_OF_CONDUCT.md). A ready-made container development environment is in [`.devcontainer/`](.devcontainer/devcontainer.json).
 
 Security issues should follow [SECURITY.md](SECURITY.md), not a public bug report.
 

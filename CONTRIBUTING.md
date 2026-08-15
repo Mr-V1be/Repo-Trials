@@ -2,6 +2,28 @@
 
 Thank you for helping make repository-specific agent evaluation more trustworthy.
 
+## One-command dev setup
+
+```bash
+git clone https://github.com/PozziTiv4ik/Repo-Trials.git && cd Repo-Trials
+python -m venv .venv && source .venv/bin/activate
+python -m pip install -e ".[dev]"
+make check                                  # ruff check, ruff format --check, mypy, pytest + coverage gate
+repotrials demo                             # end-to-end pipeline, no configuration or credentials
+```
+
+`make check` runs exactly the lint, type, and test commands CI runs. CI additionally repeats them across the supported operating-system and Python matrix, smoke-tests the CLI, and builds and inspects the distributions, so a green `make check` is necessary but not sufficient. See [Development setup](#development-setup) for the individual commands if `make` is unavailable, and for the Windows PowerShell activation command.
+
+## Fast paths for first-time contributors
+
+These are small, self-contained changes the project actively wants. None of them require understanding the mining or verifier internals.
+
+- **Add or correct an agent recipe.** `recipes/` holds one command template per command-line coding agent. Adding a new agent, fixing a flag that vendor documentation has changed, or promoting a recipe from unverified to verified by actually running it is the single most useful contribution right now. Start from the [agent adapter issue form](https://github.com/PozziTiv4ik/Repo-Trials/issues/new?template=agent_adapter.yml) so the recipe's verification status is recorded honestly. Say which agent version you tested against, or say that you did not test it.
+- **Report a mis-mined or unfair task.** If validation accepted a task whose hidden tests demand a name the prompt never gives, whose prompt is underspecified, or whose reconstruction is wrong, open a [task quality issue](https://github.com/PozziTiv4ik/Repo-Trials/issues/new?template=task_quality.yml) with sanitized evidence. Automated red/gold execution cannot detect unfairness, so these reports are how the review rubric in [docs/methodology.md](docs/methodology.md) improves.
+- **Improve an error message.** Any place where RepoTrials tells you what failed without telling you what to do next is a bug worth fixing. Good targets are messages that name no file, no configuration key, and no next command. A one-line message change plus a test asserting the new text is a complete pull request.
+- **Add a language adapter.** Go, JavaScript/TypeScript, and Java are named on the [roadmap](docs/roadmap.md) and are the largest gap in v0.1. Discuss the adapter contract with maintainers before implementing: the intended architecture is a small, testable interface, not a growing switch statement.
+- **Improve the documentation.** Fixing a command that no longer works, an example that assumes state an earlier step did not create, or an explanation that is accurate but unreadable all count. Documentation-only pull requests are welcome and are not treated as lesser contributions.
+
 ## Before opening a change
 
 - Search existing [issues](https://github.com/PozziTiv4ik/Repo-Trials/issues) and pull requests before opening a change.

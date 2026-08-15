@@ -3,3 +3,9 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/PozziTiv4ik/Repo-Trials/security/advisories/new
     about: Use GitHub private vulnerability reporting; do not disclose security details publicly.
+  - name: Ask a question or share a result
+    url: https://github.com/PozziTiv4ik/Repo-Trials/discussions
+    about: Use Discussions for setup help, agent-recipe questions, methodology debate, and evaluation results.
+  - name: Read the documentation
+    url: https://pozzitiv4ik.github.io/Repo-Trials/
+    about: Configuration reference, mining and validation methodology, task format, agent cookbook, and threat model.
