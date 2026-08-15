@@ -59,9 +59,8 @@ harness, your fixtures, and your team's idioms. RepoTrials borrows SWE-bench's g
 deliberately — fail-to-pass and pass-to-pass transitions — and changes only the corpus: yours,
 private, and regenerable as your history grows.
 
-The README carries a [comparison table](https://github.com/PozziTiv4ik/Repo-Trials#why-another-swe-evaluation-tool)
-against SWE-bench, SWE-rebench, SWE-smith, Harbor, RepoAgentBench, Superconductor, and Sigmabench
-that says where each one is the better tool.
+[The comparison page](comparison.md) covers SWE-bench, SWE-rebench, SWE-smith, Harbor,
+RepoAgentBench, Superconductor, and Sigmabench, and says where each one is the better tool.
 
 ### Does it work on non-Python repositories?
 
@@ -130,15 +129,20 @@ rejects the candidate as flaky.
 
 ```text
 resolved =
-    candidate patch applies
+    the agent command exited 0
+    AND the submission patch passed the integrity check
+        (allowlist, protected paths, file-count and byte caps)
+    AND the candidate patch applies
     AND every FAIL_TO_PASS test passes
     AND every protected PASS_TO_PASS test still passes
     AND the verifier completed without an infrastructure failure
 ```
 
-It is binary and behavioral. The agent's diff is never compared to the gold patch. Partial
-fail-to-pass progress, regressions, duration, exit category, and cost are recorded as diagnostics
-but do not make an attempt resolved.
+It is binary and behavioral: the agent's diff is never compared to the gold patch. The one
+non-behavioral condition is the conservative v0.1 integrity rule — the patch may touch only the
+task's frozen `source_files`, which is why the agent cannot create a new file (see below).
+Partial fail-to-pass progress, regressions, duration, exit category, and cost are recorded as
+diagnostics but do not make an attempt resolved.
 
 ### What does `pass@k` mean here?
 

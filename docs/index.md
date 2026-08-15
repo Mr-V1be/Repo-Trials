@@ -54,8 +54,8 @@ history grows.
 
     ---
 
-    RepoTrials parses JUnit XML from the actual test run and classifies every test as
-    `FAIL_TO_PASS`, `PASS_TO_PASS`, `FAIL_TO_FAIL`, or `PASS_TO_FAIL`. A task is resolved only
+    RepoTrials parses JUnit XML from the actual test run and checks every recorded outcome
+    against the task's frozen `FAIL_TO_PASS` and `PASS_TO_PASS` sets. A task is resolved only
     when every fail-to-pass test passes and every protected regression test still passes. A patch
     that looks nothing like the human fix scores exactly the same as one that matches it
     character for character.

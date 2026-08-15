@@ -86,15 +86,16 @@ class DemoResult:
         }
 
 
-def fixture_test_interpreter() -> str:
+def fixture_test_interpreter() -> str | None:
     """Resolve the interpreter that the generated fixture config will invoke.
 
     The generated ``repotrials.toml`` runs ``python -m pytest``, and commands
-    are executed without a shell, so the runner is whichever ``python`` the
-    process environment resolves first -- not necessarily ``sys.executable``.
+    are executed without a shell, so the only possible runner is the executable
+    named ``python`` on ``PATH`` -- never ``python3``, and not necessarily
+    ``sys.executable``.  Returns ``None`` when no such executable exists.
     """
 
-    return shutil.which("python") or shutil.which("python3") or sys.executable
+    return shutil.which("python")
 
 
 def pytest_importable(executable: str) -> bool:
@@ -117,13 +118,21 @@ def ensure_pytest(executable: str | None = None) -> str:
     """Return the fixture test interpreter, or raise an actionable error."""
 
     resolved = executable or fixture_test_interpreter()
+    if resolved is None:
+        raise DemoError(
+            "`python` is not on PATH, and the demo runs the generated fixture "
+            "repository's tests with `python -m pytest`. Activate a virtual "
+            "environment (which always provides `python`), install "
+            "`python-is-python3` on Debian/Ubuntu, or run the demo without "
+            f"installing anything: {UVX_COMMAND}"
+        )
     if pytest_importable(resolved):
         return resolved
     raise DemoError(
         f"pytest is not importable by {resolved}, and the demo runs the generated "
         "fixture repository's tests with `python -m pytest`. "
-        f"Install it with `{resolved} -m pip install pytest`, or run the demo without "
-        f"installing anything: {UVX_COMMAND}"
+        "Inside an activated virtual environment, `python -m pip install pytest` fixes "
+        f"that; otherwise run the demo without installing anything: {UVX_COMMAND}"
     )
 
 
@@ -213,9 +222,15 @@ def prepare_output(output: Path | None) -> Path:
     if output is None:
         return Path(tempfile.mkdtemp(prefix="repotrials-demo-"))
     destination = output.resolve()
-    if destination.exists() and any(destination.iterdir()):
-        raise DemoError(f"output directory must be empty: {destination}")
-    destination.mkdir(parents=True, exist_ok=True)
+    if destination.exists():
+        if not destination.is_dir():
+            raise DemoError(f"output must be a directory: {destination}")
+        if any(destination.iterdir()):
+            raise DemoError(f"output directory must be empty: {destination}")
+    try:
+        destination.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise DemoError(f"could not create output directory {destination}: {exc}") from exc
     return destination
 
 

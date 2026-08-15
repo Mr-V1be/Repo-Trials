@@ -69,7 +69,12 @@ markdown_extensions:
   - tables
   - pymdownx.details
   - pymdownx.inlinehilite
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        # Renders the architecture flowchart as a diagram instead of as source.
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.highlight:

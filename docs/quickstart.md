@@ -82,8 +82,8 @@ OK  stored 1 candidate(s), including 1 new
 $ repotrials --root .../demo-repository candidates
 Candidates (1)
 ID                              commit     source  tests  lines  title
-------------------------------  ---------  ------  -----  -----  ---------------------------------------
-candidate-cccfb93cafebceb33d74  a1772c9b3  1       1      7      Fix floating point cart total with re...
+------------------------------  ---------  ------  -----  -----  --------------------------------------------------
+candidate-cccfb93cafebceb33d74  a1772c9b3  1       1      7      Fix floating point cart total with regression test
 $ repotrials --root .../demo-repository validate --repeats 1 --accept --unsafe-local
 OK  candidate-cccfb93cafebceb33d74: valid
 
@@ -175,8 +175,8 @@ directory holds source snapshots, hidden tests, gold patches, and raw logs.
 
 ### Step 3 — Review `repotrials.toml`
 
-This is the step people skip, and it is the step that decides whether mining finds anything. At
-minimum check four things:
+This is the step people skip, and it is the step that decides whether mining finds anything and
+whether validation can execute what it finds. At minimum check four things:
 
 | Setting | Why it matters |
 |---|---|
@@ -184,6 +184,37 @@ minimum check four things:
 | `test.setup` | Frozen commands run before every phase. Prefer pinned, already-installed dependencies. |
 | `test.source_globs` / `test.test_globs` | Defaults assume `src/**/*.py` and `tests/**/*.py`. A different layout mines zero candidates. |
 | `execution.attempts` | Validation **freezes** this budget into every task. `run --attempts` is accepted only when it equals the frozen value, so set it now. |
+
+!!! warning "Run the configured test command by hand before you mine"
+
+    The defaults are `setup = []` and `command = "python -m pytest -q --junitxml={junit}"`. They
+    assume the suite is importable from a clean checkout with nothing installed. A `src/` layout
+    is the common case where that is false: `python -m pytest` puts the repository root on
+    `sys.path`, not `src/`, so collection ends in `ModuleNotFoundError` and every phase exits 2.
+    Mining still stores the candidate; `validate` then reports
+    `base_failed, gold_failed, no_fail_to_pass` without naming the cause.
+
+    ```bash
+    cd /path/to/scratch-clone-of-your-repo
+    python -m pytest -q     # must collect and pass here before RepoTrials can reproduce anything
+    ```
+
+    For a `src/` layout, either tell pytest where the package lives:
+
+    ```toml
+    [test]
+    command = "python -m pytest -q -o pythonpath=src --junitxml={junit}"
+    ```
+
+    or install the project into the evaluation environment:
+
+    ```toml
+    [test]
+    setup = ["python -m pip install -e ."]
+    ```
+
+    The `pythonpath` form needs no network, which matters for `--backend docker`: validation
+    containers run with networking disabled.
 
 Start small while you are calibrating:
 
@@ -228,8 +259,8 @@ repotrials candidates
 OK  stored 1 candidate(s), including 1 new
 Candidates (1)
 ID                              commit     source  tests  lines  title
-------------------------------  ---------  ------  -----  -----  ---------------------------------------
-candidate-9a64148473302a0bc248  50055c2a1  1       1      7      Fix floating point cart total with re...
+------------------------------  ---------  ------  -----  -----  --------------------------------------------------
+candidate-9a64148473302a0bc248  50055c2a1  1       1      7      Fix floating point cart total with regression test
 ```
 
 `--since 12.months.ago` is the other useful bound. Plain `mine` is entirely local; only
@@ -265,6 +296,29 @@ boundary for hostile code.
 
 Invalid candidates print their rejection reasons instead, and the command exits non-zero.
 
+!!! warning "`base_failed` on the first attempt means the base tree could not run its own tests"
+
+    ```text
+    WARN  candidate-297aacc5a9c85534b185: base_failed, gold_failed, no_fail_to_pass
+    ```
+
+    Reasons are not ranked, and later ones are usually consequences of the first. `base_failed`
+    means `test.command` did not pass on the untouched pre-fix tree, before any patch was applied
+    — so nothing downstream of it can succeed. On a `src/` layout it is almost always collection
+    failing with `ModuleNotFoundError`, because nothing put the package on the path. Add whatever
+    your contributors run to `test.setup` and revalidate.
+
+    Known gap: v0.1 does not persist the phase logs, so `validate` cannot show you the traceback.
+    `repotrials --json review` records the per-phase exit codes (`baseline_exit_codes`,
+    `red_exit_codes`, `gold_exit_codes`), which tell you whether the suite ran and failed or never
+    ran at all. To see the output itself, run the phase by hand:
+
+    ```bash
+    repotrials --json candidates          # note the candidate's parent_sha
+    git worktree add --detach /tmp/rt-base <parent_sha>
+    cd /tmp/rt-base && python -m pytest -q --junitxml=/tmp/rt.xml
+    ```
+
 ### Step 7 — Review before you trust the numbers
 
 Execution proves a task is reproducible and discriminating. It cannot prove the task is *fair* —
@@ -278,9 +332,14 @@ repotrials review
 ```text
 Tasks (1)
 ID                       tier  candidate                       instruction
------------------------  ----  ------------------------------  -----------------------------------------
-rt_1d07d86f4524da53e827  auto  candidate-9a64148473302a0bc248  Fix floating point cart total with reg...
+-----------------------  ----  ------------------------------  ----------------------------------------------------------------------------
+rt_1d07d86f4524da53e827  auto  candidate-9a64148473302a0bc248  Fix floating point cart total with regression test\x0a\x0aFix floating point
 ```
+
+`\x0a` is the table's own escaping of a newline, not corruption in the prompt: instructions are
+multi-line, and the triage table flattens control characters so that untrusted repository text
+cannot forge rows in your terminal or CI log. The column is a hard 70-character cut with no
+ellipsis.
 
 The plain table is triage, not a review interface. Use `repotrials --json review` together with
 the recorded candidate, validation, and source diff, and apply the

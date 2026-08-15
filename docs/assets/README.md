@@ -1,8 +1,9 @@
 # Visual assets
 
-Every file here is a hand-written, self-contained SVG: no external fonts, no embedded
-raster images, no scripts, no network requests. They render identically on GitHub, in a
-browser, and in offline documentation builds.
+Every SVG here is hand-written and self-contained: no external fonts, no embedded raster
+images, no scripts, no network requests. They render identically on GitHub, in a browser,
+and in offline documentation builds. The one exception is `report-preview.png`, which is
+a real screenshot of the demo's HTML report — regenerate it, never hand-edit it.
 
 | File | Size | Animated | Used for |
 | --- | --- | --- | --- |
@@ -10,10 +11,11 @@ browser, and in offline documentation builds.
 | `social-preview.svg` | 1280 x 640 | no | GitHub social preview / `og:image` |
 | `terminal-demo.svg` | 1040 x 446 | yes (SMIL, 23.8 s loop) | README "see it run" block |
 | `pipeline.svg` | 1200 x 520 | no | README and `docs/architecture.md` mechanism diagram |
+| `report-preview.png` | 1400 x 589 | no | README report screenshot (generated, not hand-written) |
 
 ## Design language
 
-All four files share one palette and one set of primitives, defined inline in each file's
+All four SVGs share one palette and one set of primitives, defined inline in each file's
 `<defs>`. Copy them verbatim when adding a new asset.
 
 | Token | Value | Use |
@@ -53,14 +55,15 @@ unfurlers crop the edges, so all content sits inside an 80 px safe margin
 
 Legibility floor: the card is routinely rendered at 320 px wide (a 1:4 downscale). The
 wordmark (100 px), the hook (50 px) and the score line (34 px) all survive that; the
-`$ python scripts/demo.py` line and the footer are deliberately tertiary. Do not drop the
+`$ repotrials demo` line and the footer are deliberately tertiary. Do not drop the
 subtitle below 28 px.
 
 Content comes from the positioning copy and must stay factually true: the score line
-(`noop-agent 0/1 -> fix-agent 1/1, delta +100 pp`) and the `about 3.5 s` timing are the
-measured output of `python scripts/demo.py`. If the demo's numbers change, change this
-file. The `pre-release · v0.1` pill exists so the card cannot oversell the project; keep
-it until there is a stable release.
+(`noop-agent 0/1 -> fix-agent 1/1, delta +100 pp`) is the measured output of
+`repotrials demo`, and `under 5 s` is a ceiling on that command's wall clock (about
+3.5 s on a warm Linux laptop, matching the 3.9 s quoted in `../quickstart.md`). If the
+demo's numbers change, change this file. The `pre-release · v0.1` pill exists so the
+card cannot oversell the project; keep it until there is a stable release.
 
 ## `terminal-demo.svg`
 
@@ -139,6 +142,22 @@ and re-check that no label runs into the dashed rectangle.
 
 Teal cards and the teal left accent bar mean evaluator side; violet means agent side.
 That mapping is stated in the legend at the top right — keep the two in sync.
+
+## `report-preview.png`
+
+The only raster file here, and the only one that is not hand-written: a screenshot of the
+HTML report `repotrials demo` produces, embedded in the project README. When the report
+template changes, regenerate it rather than editing it.
+
+```bash
+repotrials demo --output /tmp/rt-demo
+google-chrome --headless --disable-gpu --screenshot=docs/assets/report-preview.png \
+  --window-size=1400,589 --hide-scrollbars \
+  "file:///tmp/rt-demo/demo-repository/.repotrials/reports/demo/report.html"
+```
+
+The task id in the screenshot (`rt_...`) is different on every run; that is expected and
+is not a reason to hold off on regenerating.
 
 ## Verifying a change
 

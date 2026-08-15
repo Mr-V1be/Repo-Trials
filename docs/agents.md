@@ -58,9 +58,15 @@ Two placeholders are expanded in the command string itself:
 instruction-file path.
 
 The problem statement is derived from the historical issue, pull request, or
-commit message, with commit SHAs, solution links, and phrases such as "fixed
-by" stripped out. It describes the bug. It does not name the hidden tests and
-does not describe the fix.
+commit message, with commit SHAs, GitHub pull/commit/compare links, and lines
+containing phrases such as "fixed by" stripped out. Nothing else is removed:
+a commit-message-derived statement routinely still names a test file or
+describes the change in prose. A statement that repeats a long run of the
+gold patch verbatim is recorded as `prompt_risk: high` and excluded from
+automatic acceptance, but that is the only content check. Read the prompt
+before you trust a task — `repotrials --json review` prints it alongside
+`prompt_source`, `prompt_risk`, and `prompt_findings`. See the
+[human review rubric](methodology.md#human-review-rubric).
 
 ### There is no shell
 
@@ -168,7 +174,8 @@ material other than the canonical flag reference. Agents whose non-interactive
 flags could not be confirmed from vendor material at all ship no recipe and no
 row. **No invocation in this table has been
 executed end to end against a RepoTrials task by this project** — the only
-agents exercised in CI are the two synthetic ones in `scripts/demo.py`. Run
+agents exercised in CI are the two synthetic ones in the bundled demo
+(`src/repotrials/demo.py`, run in CI as `python scripts/demo.py`). Run
 `<agent> --help` before you publish a number, and treat a run of all zeros as a
 wiring bug until you have proven otherwise.
 
@@ -221,8 +228,11 @@ of zero rather than an error:
 
 ## Wrap your own agent
 
-Copy [`recipes/generic.sh`](https://github.com/PozziTiv4ik/Repo-Trials/blob/main/recipes/generic.sh) and change the last line.
-The whole template:
+Copy [`recipes/generic.sh`](https://github.com/PozziTiv4ik/Repo-Trials/blob/main/recipes/generic.sh) and edit two lines: the
+`AGENT=` assignment and the final `exec`. Left alone, `AGENT` defaults to
+`true` (override it with `RT_AGENT`), so an unedited copy exits 0 having
+changed nothing — an empty patch and a score of zero. A minimal wrapper is
+only this much:
 
 ```sh
 #!/bin/sh

@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://pozzitiv4ik.github.io/Repo-Trials/"><img alt="Documentation" src="https://img.shields.io/badge/docs-pozzitiv4ik.github.io-8d83ff.svg"></a>
+  <a href="https://github.com/PozziTiv4ik/Repo-Trials/tree/main/docs"><img alt="Documentation" src="https://img.shields.io/badge/docs-in%20repo-8d83ff.svg"></a>
   <a href="https://www.python.org/downloads/"><img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg"></a>
   <a href="https://codespaces.new/PozziTiv4ik/Repo-Trials"><img alt="Open in GitHub Codespaces" src="https://github.com/codespaces/badge.svg" height="20"></a>
@@ -85,16 +85,16 @@ repotrials run --agent-command "$PWD/recipes/claude-code.sh" --name claude-code 
 
 | Agent | Wrapper | What the wrapper runs |
 |---|---|---|
-| Claude Code | `recipes/claude-code.sh` | `claude --bare -p "<task>" --allowedTools "Read,Edit,Bash" --permission-mode acceptEdits` |
-| OpenAI Codex CLI | `recipes/codex.sh` | `codex exec --sandbox workspace-write --ephemeral --skip-git-repo-check "<task>"` |
+| Claude Code | `recipes/claude-code.sh` | `claude --bare -p "<task>" --allowedTools "Read,Edit,Bash" --permission-mode acceptEdits --max-turns 40` |
+| OpenAI Codex CLI | `recipes/codex.sh` | `codex exec --sandbox workspace-write --ephemeral --skip-git-repo-check --ignore-user-config "<task>"` |
 | Cursor CLI | `recipes/cursor-agent.sh` | `cursor-agent -p --force --output-format text "<task>"` |
 | Aider | `recipes/aider.sh` | `aider --message "<task>" --yes-always --no-auto-commits --no-auto-test` |
 | Amp | `recipes/amp.sh` | `amp -x "<task>"` |
 | mini-swe-agent | `recipes/mini-swe-agent.sh` | `mini -t "<task>" -y --exit-immediately -m <model>` |
 
-Seventeen wrappers ship in [`recipes/`](recipes/README.md), plus `generic.sh` as a five-line template for your own scaffold.
+Seventeen wrappers ship in [`recipes/`](recipes/README.md), plus `generic.sh` as a template for your own scaffold.
 
-**Honesty note:** those invocations were read from each vendor's published non-interactive reference in August 2026. **None of them has been executed end to end against a RepoTrials task by this project** — the only agents exercised in CI are the two synthetic ones in the bundled demo. Treat a run of all zeros as a wiring bug until you have proven otherwise; the report's failure-kind column tells you which.
+**Honesty note:** those invocations were read from each vendor's published non-interactive reference in August 2026. **None of them has been executed end to end against a RepoTrials task by this project** — the only agents exercised in CI are the two synthetic ones in the bundled demo. Treat a run of all zeros as a wiring bug until you have proven otherwise; the report's failure-kind column tells you which. One flag is ours, not the vendor's: `claude-code.sh` caps the run at `--max-turns 40` (override with `RT_MAX_TURNS`; Claude Code itself imposes no limit by default, and exits non-zero when the cap is hit, which RepoTrials records as `agent_exit`). No other recipe sets a turn budget, so a Claude Code run and a Codex CLI run in this table are not budget-matched out of the box.
 
 [docs/agents.md](docs/agents.md) documents the execution contract in full: the four `REPOTRIALS_*` environment variables, the `{workspace}` and `{instruction}` placeholders, why there is no shell in front of your command, every failure kind, and how to turn two runs into a defensible comparison.
 
@@ -119,7 +119,7 @@ The action runs and reports; it does not mine, validate, or accept tasks, becaus
 
 See [docs/ci.md](docs/ci.md) for getting the task set onto a runner, the security consequences on a hosted runner, and [a copy-pasteable workflow](.github/workflows/example-agent-regression.yml).
 
-## Why teams use it
+## What you get
 
 - **Behavioral grading.** Real JUnit `FAIL_TO_PASS` and `PASS_TO_PASS` transitions, never gold-diff similarity. A patch that looks nothing like the human fix scores exactly the same as one that matches it character for character.
 - **Leak-resistant workspaces.** Agents receive a one-commit synthetic repository without future Git objects, hidden tests, or the human solution.

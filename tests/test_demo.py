@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import io
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -10,6 +11,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from repotrials import config
 from repotrials.cli import build_parser
 from repotrials.demo import (
     UVX_COMMAND,
@@ -24,9 +26,19 @@ from repotrials.demo import (
     pytest_importable,
     render_banner,
     run,
+    run_demo,
 )
 
 MISSING_INTERPRETER = "/nonexistent/repotrials-demo-python"
+
+
+def _stub_interpreter(directory: Path, script: str) -> Path:
+    """Write a fake `python` into ``directory`` so PATH lookups resolve to it."""
+
+    stub = directory / ("python.exe" if sys.platform == "win32" else "python")
+    stub.write_text(script, encoding="utf-8")
+    stub.chmod(0o755)
+    return stub
 
 
 def sample_result(output: Path) -> DemoResult:
@@ -118,8 +130,43 @@ class PytestGuardTests(unittest.TestCase):
     def test_unusable_interpreter_is_not_importable(self) -> None:
         self.assertFalse(pytest_importable(MISSING_INTERPRETER))
 
-    def test_fixture_interpreter_is_resolvable(self) -> None:
-        self.assertTrue(Path(fixture_test_interpreter()).name.startswith("python"))
+    def test_guard_tracks_the_configured_fixture_test_command(self) -> None:
+        # The guard resolves `python` because that is what the generated
+        # fixture config invokes; changing one without the other is a bug.
+        self.assertEqual(config.TestSettings().command.split()[0], "python")
+
+    def test_fixture_interpreter_prefers_path_over_sys_executable(self) -> None:
+        # Commands run without a shell, so PATH decides -- not sys.executable.
+        with tempfile.TemporaryDirectory() as raw:
+            stub = _stub_interpreter(Path(raw), "")
+            with mock.patch.dict(os.environ, {"PATH": raw}):
+                self.assertEqual(Path(fixture_test_interpreter()), stub)
+
+    def test_guard_fires_when_the_path_interpreter_lacks_pytest(self) -> None:
+        # The unactivated-venv case: sys.executable imports pytest, PATH's does not.
+        with tempfile.TemporaryDirectory() as raw:
+            stub = _stub_interpreter(Path(raw), "#!/bin/sh\nexit 1\n")
+            with (
+                mock.patch.dict(os.environ, {"PATH": raw}),
+                self.assertRaises(DemoError) as raised,
+            ):
+                ensure_pytest()
+        self.assertIn(str(stub), str(raised.exception))
+
+    def test_run_demo_aborts_before_creating_the_output_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            requested = Path(raw) / "demo"
+            with (
+                mock.patch(
+                    "repotrials.demo.fixture_test_interpreter",
+                    return_value=MISSING_INTERPRETER,
+                ),
+                mock.patch("repotrials.demo._execute") as execute,
+                self.assertRaises(DemoError),
+            ):
+                run_demo(requested)
+            execute.assert_not_called()
+            self.assertFalse(requested.exists())
 
 
 class OutputDirectoryTests(unittest.TestCase):
