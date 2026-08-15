@@ -49,7 +49,7 @@ jobs:
 
       - name: Generate checksums
         shell: bash
-        run: sha256sum dist/*.whl dist/*.tar.gz > dist/SHA256SUMS
+        run: cd dist && sha256sum *.whl *.tar.gz > SHA256SUMS
 
       - name: Create release when the tag was pushed directly
         env:
