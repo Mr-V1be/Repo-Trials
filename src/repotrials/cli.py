@@ -128,6 +128,27 @@ def build_parser() -> argparse.ArgumentParser:
     vault_verify = vault_subparsers.add_parser("verify", help="hash-check every stored object")
     vault_verify.set_defaults(handler=_cmd_vault_verify)
 
+    demo_parser = subparsers.add_parser(
+        "demo", help="build a throwaway repository and run the whole pipeline end to end"
+    )
+    demo_parser.add_argument(
+        "--output",
+        default=None,
+        help="empty directory for the generated repository and reports"
+        " (default: a new temporary directory)",
+    )
+    # Accepted after the subcommand as well, because `repotrials demo --json`
+    # is what a first-time reader types.  SUPPRESS keeps `repotrials --json
+    # demo` working: the subparser leaves the global value alone when the flag
+    # is absent.
+    demo_parser.add_argument(
+        "--json",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="emit machine-readable JSON",
+    )
+    demo_parser.set_defaults(handler=_cmd_demo)
+
     return parser
 
 
@@ -336,6 +357,15 @@ def _cmd_compare(args: argparse.Namespace) -> int:
         if result["regression"]:
             console.failure("candidate crossed the configured regression threshold")
     return 1 if result["regression"] else 0
+
+
+def _cmd_demo(args: argparse.Namespace) -> int:
+    from .demo import run_demo
+
+    result = run_demo(Path(args.output) if args.output else None, stream=not args.json)
+    if args.json:
+        console.print_json(result.payload())
+    return 0
 
 
 def _cmd_vault_verify(args: argparse.Namespace) -> int:
