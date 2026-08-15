@@ -11,8 +11,7 @@ hide:
 
 RepoTrials finds the commits where your team fixed a bug and added a test, rewinds the
 repository to the moment before the fix, hides the test, and scores any command-line agent on
-whether it can pass it. Python repositories, pre-release v0.1, zero runtime dependencies,
-nothing uploaded.
+whether it can pass it. Python repositories, v0.1.0, zero runtime dependencies, nothing uploaded.
 
 ```text
 real fix commit → sealed historical task → equal agent trials → hidden verifier → evidence
@@ -37,8 +36,48 @@ validation, scores one deliberately broken agent and one working agent against t
 task, and leaves a self-contained HTML report on disk. The full transcript, and the same pipeline
 pointed at a repository you care about, are in the [Quickstart](quickstart.md).
 
+> `repotrials demo` and the `uvx` one-liner above land in the next release. On v0.1.0 the
+> equivalent is `python scripts/demo.py` from a source checkout.
+
 [Quickstart](quickstart.md){ .md-button .md-button--primary }
 [Wire up your agent](agents.md){ .md-button }
+
+## Install
+
+RepoTrials is not on PyPI: `pip install repotrials` does not work. Install the wheel attached to
+the v0.1.0 GitHub Release:
+
+```bash
+python -m pip install https://github.com/PozziTiv4ik/Repo-Trials/releases/download/v0.1.0/repotrials-0.1.0-py3-none-any.whl
+```
+
+Or pull the published Linux/amd64 container, which bundles Git, runs as an unprivileged user, and
+carries BuildKit provenance and an SBOM:
+
+```bash
+docker run --rm ghcr.io/pozzitiv4ik/repo-trials:0.1.0 --version
+```
+
+The container has to reach the repository you are measuring, so real use needs a bind mount:
+
+```bash
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  --volume /path/to/scratch-clone-of-your-repo:/workspace \
+  ghcr.io/pozzitiv4ik/repo-trials:0.1.0 doctor
+```
+
+`--user` is needed because the image runs as UID 10001 and Git inside it otherwise refuses a
+host-owned clone. `--volume` exposes that whole clone — working tree, `.git`, and later
+`.repotrials/` with the hidden tests and gold patches — read/write to everything in the
+container, so mount the scratch clone and nothing else. The image carries RepoTrials and Git, not
+your repository's test toolchain, so validating inside it means building your own image `FROM`
+this one. Running validation there is a narrower blast radius than `--unsafe-local` on the host,
+but it is not a hardened boundary for hostile code — the same position the
+[threat model](threat-model.md#v01-security-statement) takes on `--backend docker`.
+
+A source checkout is the path for following `main` or contributing. Every install path, including
+Windows and the `uvx` form, is in the [Quickstart](quickstart.md#step-1-install-the-cli).
 
 ## Why this exists
 
@@ -123,11 +162,11 @@ NOOP   B       + T                -> not resolved
 
 ## Status and scope
 
-!!! warning "Pre-release v0.1"
+!!! warning "v0.1.0"
 
-    RepoTrials is under active development. Command names and the task schema may change before
-    the first stable release. It is not published on PyPI yet; install from source. Do not use
-    current scores as a security or procurement certification.
+    v0.1.0 is the first public release. RepoTrials is under active development, and its command
+    names and task schema may change before 1.0. Do not use current scores as a security or
+    procurement certification.
 
 What v0.1 explicitly does **not** claim:
 

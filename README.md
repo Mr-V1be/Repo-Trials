@@ -114,7 +114,7 @@ Seventeen wrappers ship in [`recipes/`](recipes/README.md), plus `generic.sh` as
 A composite action ([`action.yml`](action.yml)) runs the agent, writes the reports, compares against a baseline run group, and fails the job when the candidate loses more ground than you allow:
 
 ```yaml
-- uses: actions/checkout@v6
+- uses: actions/checkout@v7
 - uses: PozziTiv4ik/Repo-Trials@main        # pin to a full commit SHA
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

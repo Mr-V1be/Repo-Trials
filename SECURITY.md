@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-RepoTrials is currently pre-release software. Security fixes are made on the default branch; there is not yet a supported stable release line.
+v0.1.0 is the first public release. Security fixes are made on the default branch and ship in the next release; there is no long-term-support line yet.
 
 ## Reporting a vulnerability
 
@@ -19,7 +19,7 @@ Include, when possible:
 - likely impact; and
 - any temporary mitigation already tested.
 
-Maintainers will acknowledge reports on a best-effort basis, investigate, coordinate a fix, and credit reporters who wish to be named. No response or remediation SLA is promised while the project is pre-release.
+Maintainers will acknowledge reports on a best-effort basis, investigate, coordinate a fix, and credit reporters who wish to be named. No response or remediation SLA is promised before 1.0.
 
 ## Important operating assumptions
 

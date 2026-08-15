@@ -9,6 +9,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - Published a public Linux/amd64 CLI image to GHCR with SBOM, maximum BuildKit provenance, immutable source and base-image pins, pre-push runtime smoke tests, and digest verification.
+- `repotrials demo` subcommand that runs the bundled end-to-end pipeline in a throwaway directory without configuration, credentials, or network access.
+- Agent-integration cookbook plus a `recipes/` directory of command templates for command-line coding agents, with each recipe marked verified or unverified.
+- Composite GitHub Action and a copyable consumer workflow for gating a change on an agent pass-rate regression.
+- Documentation site sources and a MkDocs Material build/deploy workflow, plus new quickstart, FAQ, CI, and releasing pages. GitHub Pages is not enabled yet, so no site is published.
+- Comparison page covering current public coding-agent benchmarks, task generators, and harnesses, including where each is the better choice.
+- Opt-in `publish-pypi` job appended to the release workflow, skipped until the `PUBLISH_TO_PYPI` repository variable is set and a PyPI trusted publisher is registered.
+- OpenSSF Scorecard workflow reporting supply-chain posture.
+- Development container definition for local Docker and GitHub Codespaces.
+- Report screenshot, pipeline diagram, and animated terminal assets under `docs/assets/`, plus a maintenance guide for the asset set.
+- Agent-adapter issue form for proposing, correcting, or retiring a command-line agent recipe.
 
 ### Security
 
@@ -32,16 +42,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Configuration reference, explicit source-install guidance, and dependency-update configuration.
 - Source-distribution manifest for schemas and project documentation.
 - CI coverage gate plus smoke checks for the end-to-end demo and built wheel/source distributions.
-- `repotrials demo` subcommand that runs the bundled end-to-end pipeline in a throwaway directory without configuration, credentials, or network access.
-- Agent-integration cookbook plus a `recipes/` directory of command templates for command-line coding agents, with each recipe marked verified or unverified.
-- Composite GitHub Action and a copyable consumer workflow for gating a change on an agent pass-rate regression.
-- Published documentation site generated from the existing `docs/` sources.
-- Tag-triggered release workflow using PyPI Trusted Publishing, with distribution build and metadata validation.
-- OpenSSF Scorecard workflow reporting supply-chain posture.
-- Development container definition for local Docker and GitHub Codespaces.
-- Report screenshot, social preview, and comparison assets under `docs/assets/`.
-- Agent-adapter issue form for proposing, correcting, or retiring a command-line agent recipe.
-- Comparison page covering current public coding-agent benchmarks, task generators, and harnesses, including where each is the better choice.
 
 ### Changed
 

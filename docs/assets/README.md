@@ -2,21 +2,31 @@
 
 Every SVG here is hand-written and self-contained: no external fonts, no embedded raster
 images, no scripts, no network requests. They render identically on GitHub, in a browser,
-and in offline documentation builds. The one exception is `report-preview.png`, which is
-a real screenshot of the demo's HTML report — regenerate it, never hand-edit it.
+and in offline documentation builds. The two PNGs are the exceptions and are both
+generated, never hand-edited: `report-preview.png` is a screenshot of the demo's HTML
+report, and `social-preview.png` is a 1:1 raster of `social-preview.svg` (GitHub's social
+preview upload does not accept SVG).
 
-| File | Size | Animated | Used for |
-| --- | --- | --- | --- |
-| `hero.svg` | 1200 x 420 | no | README banner |
-| `social-preview.svg` | 1280 x 640 | no | GitHub social preview / `og:image` |
-| `terminal-demo.svg` | 1040 x 446 | yes (SMIL, 23.8 s loop) | README "see it run" block |
-| `pipeline.svg` | 1200 x 520 | no | README and `docs/architecture.md` mechanism diagram |
-| `report-preview.png` | 1400 x 589 | no | README report screenshot (generated, not hand-written) |
+| File | Dimensions | Bytes | Animated | Used for |
+| --- | --- | --- | --- | --- |
+| `hero.svg` | 1200 x 420 | 4,062 | no | README banner and `docs/index.md` |
+| `pipeline.svg` | 1200 x 520 | 10,588 | no | README mechanism diagram |
+| `terminal-demo.svg` | 1040 x 446 | 16,518 | yes (SMIL, 23.8 s loop) | README "see it run" block |
+| `social-preview.svg` | 1280 x 640 | 5,186 | no | Editable source of the social card; not embedded in any page |
+| `social-preview.png` | 1280 x 640 | 270,891 | no | The file uploaded at Settings -> General -> Social preview |
+| `report-preview.png` | 1400 x 589 | 79,527 | no | README report screenshot |
+
+Byte sizes are recorded so an accidental re-export — a raster editor rewriting an SVG, or a
+lossless PNG turning into a 3 MB one — is visible in review. Update the row when you update
+the file.
 
 ## Design language
 
-All four SVGs share one palette and one set of primitives, defined inline in each file's
-`<defs>`. Copy them verbatim when adding a new asset.
+The SVGs share one palette and one set of primitives, defined inline in each file's
+`<defs>`. Copy them verbatim when adding a new asset. `social-preview.svg` drifts a little
+— a 36 px grid at 0.075 opacity, card fill `#121f38` on stroke `#314769`, and a background
+gradient ending at `#1a123d` — because it is sized for a standalone card rather than an
+in-page figure. Match the table below for anything new.
 
 | Token | Value | Use |
 | --- | --- | --- |
@@ -40,30 +50,66 @@ stays selectable and searchable.
 1. **Never stroke a purely horizontal path with an `objectBoundingBox` gradient.** Such a
    path has a zero-height bounding box, so the gradient degenerates and the line does not
    paint at all. `pipeline.svg` defines a second gradient, `pl-flow`, with
-   `gradientUnits="userSpaceOnUse"` for exactly this reason. (`hero.svg` predates that fix
-   and its short connector lines are invisible for this reason; only the chevrons show.)
+   `gradientUnits="userSpaceOnUse"` for exactly this reason. Two files predate that fix and
+   still lose a line to it: `hero.svg`'s short connector lines are invisible, so only the
+   chevrons show, and `social-preview.svg`'s full-width divider (`M95 566H1185`, stroked
+   with the `objectBoundingBox` `accent` gradient) does not paint at all — the row is pure
+   background in `social-preview.png`. The 420 px accent bar just above it survives because
+   a `<rect>` has height. Fix either by adding a `userSpaceOnUse` gradient.
 2. **Set `xml:space="preserve"` on any `<text>` whose alignment depends on runs of
    spaces.** SVG collapses whitespace by default, which silently destroys ASCII tables.
    `terminal-demo.svg` sets it on every line.
 
-## `social-preview.svg`
+## `social-preview.svg` and `social-preview.png`
 
-1280 x 640 is GitHub's social preview size and also a clean 2:1 for link unfurls.
-Upload it at **Settings -> General -> Social preview**. GitHub and several link
-unfurlers crop the edges, so all content sits inside an 80 px safe margin
-(x 80..1200, y 80..560) — keep it that way.
+1280 x 640 is GitHub's social preview size and also a clean 2:1 for link unfurls. The SVG
+is the editable source; the PNG is what you actually upload at **Settings -> General ->
+Social preview**, because that form takes PNG, JPG, or GIF and not SVG. Edit the SVG,
+re-render the PNG, and commit both — a PNG that has drifted from its source is worse than
+no PNG.
 
-Legibility floor: the card is routinely rendered at 320 px wide (a 1:4 downscale). The
-wordmark (100 px), the hook (50 px) and the score line (34 px) all survive that; the
-`$ repotrials demo` line and the footer are deliberately tertiary. Do not drop the
-subtitle below 28 px.
+**What it shows.** A wordmark and glyph on the top left, an `OPEN SOURCE · LOCAL-FIRST`
+pill on the top right, the hook `SWE-bench for your own codebase.` with the subtitle
+`Turn real fixes from Git history into sealed coding-agent evaluations.`, then the
+four-stage flow as monospace cards — `01 · GIT HISTORY` -> `02 · VALIDATE`
+(`BASE ✓ RED ✕ GOLD ✓`) -> `03 · RUN AGENTS` -> `04 · EVIDENCE` (`pass@k + reports`) —
+with the repository slug and `Python 3.11+ · Apache-2.0` in the footer. Teal reads
+evaluator side and violet reads agent side, the same mapping `pipeline.svg` uses: cards 01
+and 02 are teal-titled, 03 and 04 are violet.
 
-Content comes from the positioning copy and must stay factually true: the score line
-(`noop-agent 0/1 -> fix-agent 1/1, delta +100 pp`) is the measured output of
-`repotrials demo`, and `under 5 s` is a ceiling on that command's wall clock (about
-3.5 s on a warm Linux laptop, matching the 3.9 s quoted in `../quickstart.md`). If the
-demo's numbers change, change this file. The `pre-release · v0.1` pill exists so the
-card cannot oversell the project; keep it until there is a stable release.
+**Real content bounds**, measured off the rendered PNG rather than assumed: bright content
+occupies x 88..1225 and y 64..603, so the margins are 88 left, 54 right, 64 top, 36 bottom.
+The right margin is set by card 04 and the bottom margin by the footer line. GitHub and
+several link unfurlers crop the edges, so nothing new should push past those bounds, and
+the footer is the first thing a crop will eat — keep anything load-bearing out of it.
+
+**Known defect, unfixed.** In the committed PNG the `OPEN SOURCE · LOCAL-FIRST` label
+overruns its pill on both sides: the text spans roughly x 950..1189 while the rounded
+rect spans 958..1182. It is a font-metric overflow, not a layout error, so the exact
+overhang depends on which font resolves for `Inter, Segoe UI, sans-serif`. The one-line
+fix is to widen the pill and ease the tracking — in `social-preview.svg`, change the
+group to `translate(794 8)`, the rect to `width="300"`, and the label to `x="150"`,
+`font-size="14"`, `letter-spacing="1.2"`. It was left alone here because the PNG has to
+be re-rendered in the same environment that produced the current one, or the wordmark's
+weight changes; do both edits together or neither.
+
+**Legibility floor.** The card is routinely rendered at 320 px wide (a 1:4 downscale). The
+hook (59 px), the wordmark (58 px), and the card headlines (20 px monospace) survive that;
+the 14 px card captions and pill label and the 16 px footer do not, and are tertiary by
+design. Do not drop the subtitle below its current 25 px.
+
+**Factual claims on the card.** There are no numbers on it — no score line, no timing, no
+star or download count — which is deliberate, because a card cannot be re-verified once it
+is cached by an unfurler. `BASE ✓ RED ✕ GOLD ✓` is the validation contract and
+`Python 3.11+ · Apache-2.0` matches `pyproject.toml`. Keep it that way: if you add a claim,
+it has to stay true for as long as the image is live.
+
+Re-render the PNG after any SVG edit:
+
+```bash
+google-chrome --headless --disable-gpu --screenshot=docs/assets/social-preview.png \
+  --window-size=1280,640 --hide-scrollbars "file://$PWD/docs/assets/social-preview.svg"
+```
 
 ## `terminal-demo.svg`
 
@@ -145,9 +191,12 @@ That mapping is stated in the legend at the top right — keep the two in sync.
 
 ## `report-preview.png`
 
-The only raster file here, and the only one that is not hand-written: a screenshot of the
-HTML report `repotrials demo` produces, embedded in the project README. When the report
-template changes, regenerate it rather than editing it.
+A screenshot of the HTML report `repotrials demo` produces, embedded in the project
+README. Unlike `social-preview.png` it has no vector source in this directory — the report
+template is. When the template changes, regenerate the screenshot rather than editing it.
+
+`repotrials demo` is unreleased and resolves from `main`; on a v0.1.0 checkout the
+equivalent is `python scripts/demo.py`.
 
 ```bash
 repotrials demo --output /tmp/rt-demo

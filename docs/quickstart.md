@@ -58,6 +58,9 @@ task. It ends on a real red-to-green delta and a self-contained HTML report.
     The CLI runs on Windows, but a local validation there is not evidence of equivalence to the
     Linux evaluation contract. Use matching Docker validation before comparing or exporting.
 
+All three tabs resolve `main`. The `demo` subcommand is not in the v0.1.0 release — see
+[Install the CLI](#step-1-install-the-cli) for what each install path does and does not carry.
+
 `repotrials demo --output <empty-dir>` keeps the generated repository somewhere you choose;
 `repotrials demo --json` emits the same result as a machine-readable payload.
 
@@ -126,9 +129,43 @@ XML through the `{junit}` placeholder. Pytest is the default.
 
 ### Step 1 — Install the CLI
 
-RepoTrials is not on PyPI yet, so install from source.
+RepoTrials is not on PyPI: `pip install repotrials` does not work. Three things do — the wheel
+attached to the v0.1.0 GitHub Release, the published container, or a source checkout.
 
-=== "Linux / macOS"
+=== "Released wheel"
+
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate
+    python -m pip install https://github.com/PozziTiv4ik/Repo-Trials/releases/download/v0.1.0/repotrials-0.1.0-py3-none-any.whl
+    repotrials --version
+    ```
+
+    ```text
+    RepoTrials 0.1.0
+    ```
+
+    Pure Python, no third-party runtime dependencies. A `SHA256SUMS` file is attached to the same
+    release if you want to check the download.
+
+=== "Container"
+
+    Linux/amd64, bundles Git, runs as an unprivileged user, and carries BuildKit provenance and
+    an SBOM.
+
+    ```bash
+    docker run --rm ghcr.io/pozzitiv4ik/repo-trials:0.1.0 --version
+    ```
+
+    ```text
+    RepoTrials 0.1.0
+    ```
+
+    Pin the digest rather than the tag for an immutable pull:
+    `ghcr.io/pozzitiv4ik/repo-trials@sha256:292bf655e882762f2affc3c4c7d1a36ef2a949d2b272ad8d24678601e2516701`.
+    Read the mount warning below before pointing it at a repository.
+
+=== "Source"
 
     ```bash
     git clone https://github.com/PozziTiv4ik/Repo-Trials.git
@@ -143,20 +180,72 @@ RepoTrials is not on PyPI yet, so install from source.
     RepoTrials 0.1.0
     ```
 
+    This is the path for following `main` or contributing.
+
+=== "uvx, nothing installed"
+
+    ```bash
+    uvx --from git+https://github.com/PozziTiv4ik/Repo-Trials repotrials --version
+    ```
+
+    uv builds a throwaway environment from `main` and discards it. Fine for a look; install a
+    pinned version before you record a score, because `main` moves.
+
 === "Windows PowerShell"
 
     ```powershell
-    git clone https://github.com/PozziTiv4ik/Repo-Trials.git
-    cd Repo-Trials
     python -m venv .venv
     .\.venv\Scripts\Activate.ps1
-    python -m pip install .
+    python -m pip install https://github.com/PozziTiv4ik/Repo-Trials/releases/download/v0.1.0/repotrials-0.1.0-py3-none-any.whl
     repotrials --version
     ```
 
     ```text
     RepoTrials 0.1.0
     ```
+
+    Swap the install line for `python -m pip install .` inside a clone to build from source. The
+    CLI runs on Windows, but a local validation there is not evidence of equivalence to the Linux
+    evaluation contract. Use matching Docker validation before comparing or exporting.
+
+The wheel and the container are both built from the v0.1.0 tag, whose CLI is `init`, `doctor`,
+`mine`, `candidates`, `validate`, `review`, `export-harbor`, `run`, `report`, `compare`, and
+`vault`. Neither has `repotrials demo`; the source and `uvx` paths resolve `main`, which does.
+
+> `repotrials demo` and the `uvx` one-liner above land in the next release. On v0.1.0 the
+> equivalent is `python scripts/demo.py` from a source checkout.
+
+!!! warning "The container needs a bind mount, and that mount is the exposure"
+
+    RepoTrials works on a repository on your disk, so the container has to be able to reach it:
+
+    ```bash
+    docker run --rm \
+      --user "$(id -u):$(id -g)" \
+      --volume /path/to/scratch-clone-of-your-repo:/workspace \
+      ghcr.io/pozzitiv4ik/repo-trials:0.1.0 doctor
+    ```
+
+    `--user` is not optional in practice: the image runs as UID 10001, and Git inside it refuses
+    a host-owned clone with `detected dubious ownership in repository at '/workspace'`. Matching
+    your host UID also leaves `repotrials.toml` and `.repotrials/` owned by you.
+
+    `--volume` hands everything inside the container read/write access to that entire clone: the
+    working tree, `.git` with its full history, and `.repotrials/` with the hidden tests and gold
+    patches once they exist. Mount the scratch clone and nothing else — no home directory, no SSH
+    or cloud credentials, no Docker socket.
+
+    The image carries RepoTrials and Git, not your repository's test toolchain — `pytest` is not
+    installed in it. Validating inside it means building your own image `FROM` this one with the
+    suite's dependencies added.
+
+    Validating in there is a narrower blast radius than `--unsafe-local` on the host: historical
+    setup and tests hit the container filesystem and the mounted clone instead of your whole user
+    account. It is still **not a hardened boundary for hostile code**. The container shares the
+    host kernel, and the mounted clone is writable from inside it — the same position the
+    [threat model](threat-model.md#v01-security-statement) takes on `--backend docker`. For an
+    actual boundary, run the whole thing in a disposable VM, or use `export-harbor` and a sandbox
+    provider that is one.
 
 ### Step 2 — Initialize inside a disposable clone
 

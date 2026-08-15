@@ -10,5 +10,5 @@ contact_links:
     url: https://github.com/PozziTiv4ik/Repo-Trials/discussions
     about: Use Discussions for setup help, agent-recipe questions, methodology debate, and evaluation results.
   - name: Read the documentation
-    url: https://pozzitiv4ik.github.io/Repo-Trials/
+    url: https://github.com/PozziTiv4ik/Repo-Trials/tree/main/docs
     about: Configuration reference, mining and validation methodology, task format, agent cookbook, and threat model.

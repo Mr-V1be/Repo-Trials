@@ -243,7 +243,53 @@ Two things to get right for any agent: it must run non-interactively and auto-ap
 edits, and it must not auto-commit or run the repository's tests on your behalf. See
 [Agents](agents.md) for worked invocations.
 
-### It is v0.1 with no PyPI release and no tag. Won't anything I build on it break?
+### How do I install it?
+
+Three paths work today. RepoTrials is **not on PyPI**, so `pip install repotrials` does not resolve.
+
+The released wheel, straight from GitHub Releases:
+
+```bash
+python -m pip install https://github.com/PozziTiv4ik/Repo-Trials/releases/download/v0.1.0/repotrials-0.1.0-py3-none-any.whl
+repotrials --help
+```
+
+The public Linux/amd64 container, which bundles Git and runs as an unprivileged user:
+
+```bash
+docker run --rm ghcr.io/pozzitiv4ik/repo-trials:0.1.0 --version
+```
+
+Pin the OCI digest rather than the version tag for an immutable pull; the image carries BuildKit
+provenance and an SBOM. Or install from a source checkout to follow `main`:
+
+```bash
+git clone https://github.com/PozziTiv4ik/Repo-Trials.git
+cd Repo-Trials
+python -m venv .venv && source .venv/bin/activate
+python -m pip install .
+```
+
+You need Git and Python 3.11 or newer either way, plus whatever the target repository needs to
+install and test itself. The core has zero third-party runtime dependencies.
+
+### Is there a released version I can pin?
+
+Yes: **v0.1.0**, the first public release, tagged and published on 2026-08-15 with a wheel, a
+source distribution, and a `SHA256SUMS` file as release assets, plus the matching
+`ghcr.io/pozzitiv4ik/repo-trials:0.1.0` container image.
+
+What v0.1.0 contains is the pipeline this FAQ describes: mine, validate against BASE/RED/GOLD,
+review, run an agent command, report, compare, and export to Harbor. What it does **not** yet
+contain is `repotrials demo`, the `recipes/` wrappers, the composite GitHub Action, or the
+documentation site — those land in the next release. On v0.1.0 the equivalent of the demo is
+`python scripts/demo.py` from a source checkout, and the `uvx ... repotrials demo` one-liner in
+the README resolves `main` rather than the tag.
+
+Pin the tag if you want a fixed CLI, or pin a commit on `main` if you want the unreleased pieces.
+Either way, record the digests along with the score — see the next answer.
+
+### It is v0.1 with no PyPI release. Won't anything I build on it break?
 
 Some of it will, and the status banner says so on the first screen.
 
@@ -253,14 +299,20 @@ Task-content and task-contract digests are baked into every task ID, so changing
 hidden test, a policy, or the environment produces a *different* task rather than silently
 corrupting an old comparison. And the comparator refuses mismatched cohorts outright.
 
-Practical advice: install from source, pin the commit, and record the digests alongside every
-score. When the format moves, your old numbers will fail loudly instead of drifting quietly.
+Practical advice: pin the released wheel or the container digest — or, on `main`, pin the exact
+commit — and record the digests alongside every score. When the format moves, your old numbers
+will fail loudly instead of drifting quietly.
 
 ### Is RepoTrials on PyPI?
 
-Not yet. Install from source; see [Quickstart](quickstart.md#step-1-install-the-cli). There is no
-published release or tag at the time of writing, so cite the exact Git commit when you reference
-a result.
+No. `pip install repotrials` does not work; the name is unpublished. Install the released wheel,
+the container, or a source checkout as described in
+[How do I install it?](#how-do-i-install-it) above.
+
+The release workflow carries a `publish-pypi` job that stays skipped until the repository owner
+sets `PUBLISH_TO_PYPI=true` and registers a PyPI trusted publisher. Neither has happened, so
+treat PyPI as unavailable and cite the release tag or the exact Git commit when you reference a
+result.
 
 ### How do I report a bug or a bad task?
 

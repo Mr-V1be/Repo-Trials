@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # The agent process is not confined to its sealed workspace, so do not
           # leave the workflow token in .git/config where it could read it.

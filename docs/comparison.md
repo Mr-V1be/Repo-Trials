@@ -8,7 +8,7 @@ Most of the projects below are older, larger, more widely used, and more externa
 
 - Every project listed was checked against its own repository, documentation site, or paper on **2026-08-15**. Anything that could not be verified from a primary source is not described here.
 - Star counts, task counts, and version numbers are as of that date and will drift. Treat them as scale indicators, not current facts.
-- RepoTrials is **pre-release v0.1** with no external validation, no published results, no leaderboard, and no user base. Where this page says RepoTrials differs, it is describing a design difference, not a demonstrated advantage.
+- RepoTrials is at **v0.1.0**, its first public release, with no external validation, no published results, no leaderboard, and no user base. Where this page says RepoTrials differs, it is describing a design difference, not a demonstrated advantage.
 - These tools are largely complementary. The reasonable posture for a team choosing an agent configuration is one public benchmark for general capability plus one private repository-specific set for transfer, not one instead of the other.
 
 ## Quick routing
@@ -225,7 +225,7 @@ This is RepoTrials' actual category, and it has real competition.
 
 **Use it instead of RepoTrials when** your project is not Python — its framework detection already covers Go, Cargo, and npm, which RepoTrials does not — or when you want batteries-included model adapters instead of writing a shell command, or when your workflow is PR-centric and you want the PR title and description as the task prompt. A human-written PR description is usually a better prompt than anything derivable from a commit.
 
-**How RepoTrials differs.** Four design choices, each with a cost. RepoTrials mines raw Git history rather than requiring merged pull requests, so it works on repositories without a PR workflow but loses the PR description as prompt material. It runs independent BASE/RED/GOLD executions with configurable repeats before a task is accepted, which is slower. It keeps hidden tests and gold patches in a content-addressed vault outside the agent workspace and exports the base tree via `git archive` with no later history, where RepoAgentBench deliberately preserves `.git` — RepoTrials' choice reduces oracle exposure and breaks any task whose build reads version-control state. And it enforces a strict cohort gate before `compare` will produce a delta. Neither project has meaningful adoption; RepoAgentBench is at 29 stars and RepoTrials at zero, and both are alpha. Evaluate both.
+**How RepoTrials differs.** Four design choices, each with a cost. RepoTrials mines raw Git history rather than requiring merged pull requests, so it works on repositories without a PR workflow but loses the PR description as prompt material. It runs independent BASE/RED/GOLD executions with configurable repeats before a task is accepted, which is slower. It keeps hidden tests and gold patches in a content-addressed vault outside the agent workspace and exports the base tree via `git archive` with no later history, where RepoAgentBench deliberately preserves `.git` — RepoTrials' choice reduces oracle exposure and breaks any task whose build reads version-control state. And it enforces a strict cohort gate before `compare` will produce a delta. Neither project has meaningful adoption; RepoAgentBench is at 29 stars and RepoTrials at zero, and both are pre-1.0. Evaluate both.
 
 ### Superconductor
 
@@ -282,7 +282,7 @@ Reach for something else if any of these hold.
 - **You are evaluating an untrusted agent and need real isolation.** RepoTrials v0.1 is not a hardened sandbox; see [docs/threat-model.md](threat-model.md). Local validation and local agent runs require `--unsafe-local` every time. Export to Harbor, or run inside a sandbox provider that actually is a boundary.
 - **You need terminal, infrastructure, from-scratch, or multimodal task shapes.** Use Terminal-Bench, Commit0, or SWE-bench Multimodal.
 - **You cannot spend human review time.** Automated validation answers reproducible and discriminating. It does not answer fair. Skipping review means shipping the exact defect class the 2026 audits found.
-- **You need stability guarantees.** v0.1 is pre-release; command names and the task schema may change. What is offered instead is content addressing: versioned JSON Schemas with a `schema_version` consumers must check, task-content and task-contract digests baked into task IDs, and a comparator that refuses mismatched cohorts. Old numbers will fail loudly rather than drift quietly, which is not the same as not breaking.
+- **You need stability guarantees.** v0.1.0 is the first public release, and command names and the task schema may change before 1.0. What is offered instead is content addressing: versioned JSON Schemas with a `schema_version` consumers must check, task-content and task-contract digests baked into task IDs, and a comparator that refuses mismatched cohorts. Old numbers will fail loudly rather than drift quietly, which is not the same as not breaking.
 
 ## Corrections
 

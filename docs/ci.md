@@ -4,6 +4,8 @@ RepoTrials ships a composite GitHub Action at the repository root (`action.yml`)
 
 `repotrials compare --fail-on-regression <pp>` exits 1 on a regression. The action is a thin, well-labelled wrapper around that exit code.
 
+> The composite action lands in the next release. `@main` resolves it only once this change is merged; it is not in v0.1.0.
+
 Read [the threat model](threat-model.md) before putting this in a pipeline. The [security section below](#security) states the specific consequences on a hosted runner.
 
 ## What the action does and does not do
@@ -30,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 

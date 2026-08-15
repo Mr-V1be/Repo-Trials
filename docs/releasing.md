@@ -1,294 +1,323 @@
 # Releasing
 
-This is the maintainer runbook for cutting a RepoTrials release. It covers the
-one-time setup that cannot be automated, the version bump, the tag, what each
-workflow does, and how a third party can verify what was published.
+Maintainer runbook for cutting a RepoTrials release: what each workflow
+actually does, what still has to be done by hand, and how a third party
+verifies the result.
 
-RepoTrials has not been released yet. There is no tag, no GitHub Release, and
-the `repotrials` name is not claimed on PyPI. Everything below describes the
-first release as much as it does the tenth.
+Current state, as of 2026-08-15:
 
-## One-time manual setup
+- **`v0.1.0` is released.** The tag points at commit `7bc0ce5`. The GitHub
+  Release carries three assets: `repotrials-0.1.0-py3-none-any.whl`,
+  `repotrials-0.1.0.tar.gz`, and `SHA256SUMS`.
+- **The container is published.** `ghcr.io/pozzitiv4ik/repo-trials:0.1.0`,
+  Linux/amd64, with a matching `sha-7bc0ce50...` tag.
+- **RepoTrials is not on PyPI.** `pip install repotrials` does not work. The
+  `publish-pypi` job exists but is dormant, and nothing publishes to an index
+  until the two manual steps below are both done.
 
-These steps require repository-owner or PyPI-account access and must be done by
-hand. No workflow can perform them.
+## What `release.yml` does
 
-### 1. PyPI trusted publisher
+Trigger: a pushed tag matching `v*`. That is the only trigger — there is no
+`workflow_dispatch`, no TestPyPI path, and no rehearsal target.
 
-Publishing uses OpenID Connect, not a stored API token. PyPI verifies a
-short-lived token that GitHub mints for one workflow in one environment.
+Job `build-and-publish`, on `ubuntu-latest`, with `contents: write` and a
+15-minute timeout:
 
-For a project that does not exist on PyPI yet, add a *pending* publisher at
-<https://pypi.org/manage/account/publishing/>:
+1. Checks out the tagged tree with `persist-credentials: false`.
+2. Sets up Python 3.13 with the pip cache.
+3. **Version guard.** Reads `[project] version` from `pyproject.toml` with
+   `tomllib` and fails unless `GITHUB_REF_NAME` is exactly `v` plus that
+   version. This is the workflow's only version check: `__version__`,
+   `CITATION.cff`, and the `Dockerfile` are never inspected.
+4. Runs `python -m build`, then `python -m twine check dist/*` — metadata
+   validation, not `--strict`.
+5. Writes checksums: `cd dist && sha256sum *.whl *.tar.gz > SHA256SUMS`.
+6. Runs `gh release view "$TAG"`, and only if that fails, creates the release
+   with `--verify-tag --title "RepoTrials $TAG" --generate-notes`. Notes come
+   from GitHub's commit and pull-request generator, not from `CHANGELOG.md`.
+   If a release for the tag already exists, the workflow leaves its title and
+   body untouched and only attaches assets — which is why the v0.1.0 release
+   carries its own title rather than the workflow's default.
+7. Uploads `dist/*.whl`, `dist/*.tar.gz`, and `dist/SHA256SUMS` to the release
+   with `--clobber`.
+8. Uploads `dist/` as the `release-distributions` artifact — 7-day retention,
+   `if-no-files-found: error` — for the optional PyPI job.
 
-| Field | Value |
-| --- | --- |
-| PyPI project name | `repotrials` |
-| Owner | `PozziTiv4ik` |
-| Repository name | `Repo-Trials` |
-| Workflow name | `release.yml` |
-| Environment name | `pypi` |
+What it does **not** do: no tests, no linter, no type check, no wheel-install
+smoke test, and no attestation. `CI` does not run on tags, so the tagged tree
+is only as tested as the `main` commit it points at. Tag a commit whose `CI`
+run is green.
 
-Repeat at <https://test.pypi.org/manage/account/publishing/> with the
-environment name `testpypi` to enable the rehearsal path.
+## What `container.yml` does
 
-Check that the `repotrials` name is actually available before the first
-publish. The first successful upload claims it permanently; PyPI does not
-transfer names on request.
+Trigger: `workflow_dispatch` only. The job runs only when all three hold: the
+repository is `PozziTiv4ik/Repo-Trials`, the dispatch ref is `main`, and the
+required `confirmation` input is typed exactly as `publish-v0.1.0`. Top-level
+`permissions: {}`; the job takes `contents: read` and `packages: write`. Every
+action is pinned to a full commit SHA, and the release coordinates —
+`IMAGE`, `RELEASE_REF`, `RELEASE_SHA`, `VERSION`, and a digest-pinned
+`PYTHON_IMAGE` — are hardcoded in `env:`.
 
-If a `PYPI_API_TOKEN` secret exists in this repository, delete it. The release
-workflow does not read one, and an unused publishing credential is a liability.
+1. Checks out twice: `publisher/` at the dispatch ref, which supplies the
+   `Dockerfile`, and `release/` at `RELEASE_REF`, which supplies the build
+   context. The image is built from tagged source using `main`'s `Dockerfile`.
+2. Verifies identity: `publisher` HEAD equals `GITHUB_SHA`, `release` HEAD
+   equals `RELEASE_SHA`, and `release/pyproject.toml` version equals `VERSION`.
+3. Builds an audit image locally (`load: true`, `provenance: false`,
+   `sbom: false`) and smoke-tests it: `--version` prints `RepoTrials 0.1.0`,
+   `Config.User` is `10001:10001`, the `revision` label matches `RELEASE_SHA`,
+   and inside the container uid and gid are 10001, `$HOME` is
+   `/home/repotrials`, and `/workspace` is writable.
+4. Logs in to `ghcr.io` with the job's `GITHUB_TOKEN`.
+5. **Refuses to overwrite.** Aborts if `:$VERSION` or `:sha-$RELEASE_SHA`
+   already resolves, and also aborts if it cannot tell — anything other than a
+   not-found, manifest-unknown, name-unknown, or 404 response.
+6. Builds and pushes both tags for `linux/amd64` with `provenance: mode=max`
+   and `sbom: true`, plus OCI `created`, `revision`, `source`, `url`, and
+   `version` labels.
+7. Verifies what it published: both tags' raw manifests hash to the pushed
+   digest, pulls by digest, repeats the runtime smoke test against the pulled
+   image, and asserts that `imagetools inspect` reports a non-null `SBOM` and
+   `Provenance`. Appends `Published: <image>@<digest>` to the job summary.
 
-### 2. GitHub environments
+Consequence of step 5: a version tag can be published exactly once. There is no
+re-publish. A bad image needs a new version.
 
-Settings → Environments. Create two:
+## Enabling PyPI publication
 
-- `pypi` — restrict deployment branches and tags to the tag pattern `v*`, and
-  add a required reviewer. This makes publishing to the real index an explicit
-  human decision even when a tag push triggers it automatically.
-- `testpypi` — no protection needed.
+The `publish-pypi` job in `release.yml` is guarded by
+`if: vars.PUBLISH_TO_PYPI == 'true'`. Until that variable exists the job is
+skipped, nothing is uploaded to any index, and a tag push behaves exactly as
+v0.1.0 did. Do both of the following once; neither can be automated.
 
-### 3. GitHub Pages source
+1. Register a **pending publisher** at
+   <https://pypi.org/manage/account/publishing/>:
 
-Settings → Pages → Build and deployment → Source: **GitHub Actions**.
+   | Field | Value |
+   | --- | --- |
+   | PyPI project name | `repotrials` |
+   | Owner | `PozziTiv4ik` |
+   | Repository name | `Repo-Trials` |
+   | Workflow name | `release.yml` |
+   | Environment name | `pypi` |
 
-Until this is set once by hand, `docs.yml` fails at the deploy step with a
-"Pages is not enabled" error. The workflow cannot set it; it is a repository
-setting.
+   The `repotrials` name is unclaimed as of 2026-08-15. The first successful
+   upload claims it permanently; PyPI does not transfer names on request.
 
-### 4. Branch protection on `main`
+2. Settings → Secrets and variables → Actions → Variables: add
+   `PUBLISH_TO_PYPI` with the value `true`.
 
-Settings → Rules → Rulesets (or Branches → Branch protection rules):
+Optionally create the `pypi` environment under Settings → Environments and give
+it a required reviewer, so publication to the real index is an explicit human
+decision. The environment name must stay `pypi`; it is part of what PyPI
+verifies. Do not add a `PYPI_API_TOKEN` secret — trusted publishing exchanges a
+short-lived OIDC token, so a stored credential would be an unused liability.
 
-- require a pull request before merging;
-- require the `CI` status checks to pass — at minimum the Ubuntu 3.11 and 3.13
-  matrix legs and `Build and inspect distributions`;
-- require the `CodeQL` analysis to pass;
-- require branches to be up to date before merging;
-- block force pushes and deletions.
+Once both are in place, the job runs after `build-and-publish` on every `v*`
+tag. It downloads the `release-distributions` artifact, deletes `SHA256SUMS`
+from it, attests build provenance with `actions/attest-build-provenance`
+(`id-token: write`, `attestations: write`), and uploads with
+`pypa/gh-action-pypi-publish` using `attestations: true` and `print-hash: true`.
 
-OpenSSF Scorecard reads these settings, so this step is also what moves the
-Branch-Protection score off zero.
-
-### 5. Optional: Scorecard token
-
-The default `GITHUB_TOKEN` cannot read branch-protection settings. To score
-that check, create a fine-grained personal access token with read-only
-`administration` permission on this repository, store it as the
-`SCORECARD_TOKEN` secret, and uncomment the `repo_token` line in
-`.github/workflows/scorecard.yml`. Leaving it unset is acceptable; the check is
-then reported as inconclusive rather than failed.
-
-Do not add a Scorecard badge to `README.md` until a run has published a real
-score. The badge URL after the first successful run is
-`https://api.securityscorecards.dev/projects/github.com/PozziTiv4ik/Repo-Trials/badge`.
+To publish a version that was already tagged and released, do both steps above
+and then re-run that tag's `Release` run from the Actions tab. The re-run
+rebuilds from the tag — it does not reuse the expired artifact — and is
+idempotent: release creation is guarded by `gh release view`, and asset upload
+uses `--clobber`.
 
 ## Version locations
 
-The version is written in four places and they must agree. The release workflow
-cross-checks the first two and the tag, and fails the build on a mismatch; the
-other two are your responsibility.
+Bump all of these together. Only the first is enforced by a workflow.
 
-| File | Field |
+| File | What carries the version |
 | --- | --- |
-| `pyproject.toml` | `[project] version` |
-| `src/repotrials/__init__.py` | `__version__` |
-| `CITATION.cff` | `version`, and add or update `date-released` |
-| `Dockerfile` | `ARG REPOTRIALS_VERSION` |
+| `pyproject.toml` | `[project] version` — the value `release.yml` checks against the tag |
+| `src/repotrials/__init__.py` | `__version__`, read by `repotrials --version` and recorded as `repotrials_version` in every run manifest and report |
+| `tests/test_cli.py` | asserts the literal string `RepoTrials 0.1.0`, so `CI` fails on a half-finished bump |
+| `CITATION.cff` | `version` and `date-released` |
+| `Dockerfile` | `ARG REPOTRIALS_VERSION` default |
+| `CHANGELOG.md` | the new `## [x.y.z] - YYYY-MM-DD` heading and both link definitions at the bottom |
+| `README.md` | the wheel download URL and the `ghcr.io/pozzitiv4ik/repo-trials:<tag>` example |
+| `docs/index.md` | the wheel download URL and two `ghcr.io/pozzitiv4ik/repo-trials:<tag>` references |
+| `docs/quickstart.md` | four `RepoTrials 0.1.0` sample outputs, two wheel download URLs, and two `ghcr.io/pozzitiv4ik/repo-trials:<tag>` references |
+| `docs/faq.md` | the wheel download URL and two `ghcr.io/pozzitiv4ik/repo-trials:<tag>` references |
+| `docs/task-format.md` | the `repotrials_version` field in the example record |
+| `docs/assets/README.md` | the `v0.1.0 checkout` note under `report-preview.png` |
+| `.github/workflows/container.yml` | `RELEASE_REF`, `RELEASE_SHA`, `VERSION`, the `created` label timestamp, the `concurrency` group, the confirmation string in both the input description and the job `if`, and the `repotrials:audit-vX.Y.Z` tag plus the expected `--version` strings |
 
-`repotrials --version` and the `repotrials_version` field recorded in every run
-manifest and report both read `src/repotrials/__init__.py`, so a stale value
-there silently mislabels stored evaluation results. That is the one mismatch
-that corrupts data rather than just documentation.
+Confirm with `grep -rn '0\.1\.0' --exclude-dir=.git .` before tagging, then bump
+only the files in the table above. Leave every historical record alone: the
+released `## [0.1.0]` section and its link definition in `CHANGELOG.md`, this
+page's verification section, the FAQ's account of the first release, and the
+third-party version cited at `docs/comparison.md:220`.
+
+A stale `src/repotrials/__init__.py` is the only mismatch that corrupts data
+rather than documentation: it mislabels stored run manifests and reports.
 
 ## Cutting a release
 
-### 1. Prepare the changelog
+1. Update `CHANGELOG.md`: rename `## [Unreleased]` to
+   `## [x.y.z] - YYYY-MM-DD`, open a fresh empty `## [Unreleased]` above it,
+   and update the two link definitions at the bottom. Record CLI, schema, and
+   exit-code changes explicitly — consumers are told to check `schema_version`
+   and reject unknown values.
+2. Bump every file in the table above.
+3. Verify locally:
 
-`CHANGELOG.md` keeps an `## [Unreleased]` section. Rename it to the release
-version and open a fresh empty `## [Unreleased]` above it:
+   ```bash
+   python -m pip install -e ".[dev]"
+   make check
+   python scripts/demo.py
+   repotrials --version
+   ```
 
-```markdown
-## [Unreleased]
+4. Open a pull request, let `CI` pass, and merge to `main`. `release.yml` runs
+   no checks of its own, so this green run is the only gate.
+5. Publish, by one of two paths:
 
-## [0.2.0] - 2026-08-20
-```
+   - **Tag push.** Tag a merged commit, never a local one:
 
-The release workflow extracts the section whose heading label matches the
-version and uses it as the GitHub Release body, so the heading must be exactly
-`## [0.2.0]` or `## [0.2.0] - <date>`. If no matching section is found the
-release still publishes, with a body that points at the changelog — an obvious
-signal that this step was skipped.
+     ```bash
+     git switch main
+     git pull --ff-only
+     git tag -a v0.2.0 -m "RepoTrials 0.2.0"
+     git push origin v0.2.0
+     ```
 
-Record CLI, schema, and exit-code changes explicitly. Consumers are told to
-check `schema_version` and reject unknown values; a schema bump that is not in
-the changelog breaks that contract.
+     The workflow creates the release with generated notes and attaches the
+     assets.
+   - **Release first.** Publish a release in the GitHub UI against the new tag,
+     with your own title and body. That creates and pushes the tag, the
+     workflow finds the existing release, and it only attaches assets.
 
-### 2. Bump the version
+   Either way the tag must be `v` plus the exact `pyproject.toml` version;
+   `v0.2.0` against a `0.2.1` package fails the guard before anything is built.
+6. Watch the run, then verify the assets as described below.
+7. Publish the container image (next section). It is not automatic.
 
-Edit the four files listed above. Then confirm locally:
+## Publishing the container image
 
-```bash
-python -m pip install -e ".[dev]"
-make check
-python scripts/demo.py
-repotrials --version
-```
-
-### 3. Merge
-
-Open a pull request with the bump and the changelog, let CI pass, and merge to
-`main`. Tag a merged commit, never a local one.
-
-### 4. Rehearse (recommended for the first release)
-
-Actions → Release → Run workflow:
-
-- `target: none` — builds, runs the full verification suite, cross-checks the
-  version, validates metadata with `twine check --strict`, and installs the
-  wheel into a clean virtual environment. Nothing is published and no
-  attestation is written.
-- `target: testpypi` — the same, then uploads to TestPyPI. Install from there
-  in a clean environment before touching the real index:
-
-  ```bash
-  python -m pip install --index-url https://test.pypi.org/simple/ \
-    --extra-index-url https://pypi.org/simple/ repotrials
-  ```
-
-  The extra index is needed because TestPyPI does not mirror dependencies.
-  RepoTrials has no runtime dependencies, so this only matters if that ever
-  changes.
-
-TestPyPI is a scratch index. Its history is not authoritative and version
-numbers there can be burned freely.
-
-### 5. Tag and push
-
-```bash
-git switch main
-git pull --ff-only
-git tag -a v0.2.0 -m "RepoTrials 0.2.0"
-git push origin v0.2.0
-```
-
-The tag must be `v` plus the exact packaged version. `v0.2.0` with
-`pyproject.toml` at `0.2.1` fails the build job before anything is published.
-
-### 6. Approve the publish
-
-The tag push starts `Release`. When it reaches the `Publish to PyPI` job it
-waits on the `pypi` environment's required reviewer. Approve it, and the
-workflow publishes to PyPI and then creates the GitHub Release.
-
-### 7. Verify (see below), then announce
-
-## What the workflows do
-
-### `.github/workflows/release.yml`
-
-Triggered by a `v*` tag push, and manually via `workflow_dispatch` with a
-`target` input (`none`, `testpypi`, `pypi`).
-
-| Job | Runs when | Does |
-| --- | --- | --- |
-| `verify` | always | ruff check, ruff format --check, mypy --strict, pytest with the coverage gate, and the end-to-end demo, on the tagged commit |
-| `build` | after `verify` | cross-checks tag/`pyproject.toml`/`__version__`, `python -m build`, `twine check --strict`, wheel install smoke test, build provenance attestation, uploads `dist/` as an artifact |
-| `publish-testpypi` | dispatch with `target: testpypi` | trusted-publishing upload to TestPyPI |
-| `publish-pypi` | tag push, or dispatch with `target: pypi` | trusted-publishing upload to PyPI, gated on the `pypi` environment |
-| `github-release` | tag push only | extracts notes from `CHANGELOG.md`, appends SHA-256 digests and verification instructions, creates the Release with the sdist and wheel attached |
-
-`CI` does not run on tags, which is why `release.yml` repeats its checks rather
-than assuming a green run on `main`. The tagged tree is what gets published, so
-the tagged tree is what gets tested.
-
-A manual dispatch never creates a GitHub Release, because there is no tag to
-attach it to.
-
-### `.github/workflows/docs.yml`
-
-Builds the MkDocs Material site with `mkdocs build --strict` on every push to
-`main` and deploys it to GitHub Pages. `--strict` means a broken internal link
-or an unknown configuration key fails the run instead of publishing a damaged
-site. If `requirements-docs.txt` exists it is installed alongside
-`mkdocs-material`; that is where extra MkDocs plugins belong.
-
-### `.github/workflows/scorecard.yml`
-
-Runs OpenSSF Scorecard weekly, on pushes to `main`, and when a branch
-protection rule changes. Results go to code scanning and, because
-`publish_results` is enabled, to the public OpenSSF API — which is what makes
-the resulting badge verifiable by someone who does not trust this repository.
+1. Merge an edit to `.github/workflows/container.yml` on `main` updating every
+   field listed for it in the version table, and bump `PYTHON_IMAGE` to a
+   current digest-pinned base while you are there.
+2. Actions → Publish container → Run workflow, from `main`, typing
+   `publish-vX.Y.Z` into the confirmation field.
+3. Read `Published: <image>@<digest>` out of the job summary and record the
+   digest. That is the value to quote wherever an immutable pull is documented.
 
 ## Verifying a published artifact
 
-Anything below can be run by a third party. Publish the commands, not a
+Everything here can be run by a third party. Publish the commands, not a
 reassurance.
 
-### Build provenance
-
-Every artifact attached to a GitHub Release carries a signed SLSA-style
-provenance attestation naming the workflow, the repository, and the commit that
-produced it:
+### Release assets
 
 ```bash
-gh release download v0.2.0 --repo PozziTiv4ik/Repo-Trials --pattern '*.whl'
-gh attestation verify --repo PozziTiv4ik/Repo-Trials repotrials-0.2.0-py3-none-any.whl
+gh release download v0.1.0 --repo PozziTiv4ik/Repo-Trials
+sha256sum --check SHA256SUMS
 ```
 
-A wheel downloaded from PyPI has the same digest as the one attached to the
-Release, so the same command verifies it.
+`SHA256SUMS` is produced in the same job that built the files, so it
+establishes that the download is intact, not where the build came from. The
+v0.1.0 assets carry **no** signed attestation: attestation happens only in the
+`publish-pypi` job, and that job has never run, so `gh attestation verify`
+reports none for them.
 
-### Digests
-
-The Release body lists the SHA-256 of every artifact. Compare against what you
-downloaded:
+### Build provenance — only after PyPI publishing is enabled
 
 ```bash
-python -m pip download --no-deps --no-binary :all: repotrials==0.2.0 -d /tmp/rt
-sha256sum /tmp/rt/*
+gh release download vX.Y.Z --repo PozziTiv4ik/Repo-Trials --pattern '*.whl'
+gh attestation verify --repo PozziTiv4ik/Repo-Trials \
+  repotrials-X.Y.Z-py3-none-any.whl
 ```
 
-### Installed package
+The wheel on PyPI and the wheel attached to the Release are the same file with
+the same digest, so one attestation covers both.
+
+### Container image
 
 ```bash
-pipx install repotrials==0.2.0
-repotrials --version
-repotrials doctor
+docker buildx imagetools inspect ghcr.io/pozzitiv4ik/repo-trials:0.1.0
+docker buildx imagetools inspect ghcr.io/pozzitiv4ik/repo-trials:0.1.0 \
+  --format '{{json .Provenance}}'
+docker buildx imagetools inspect ghcr.io/pozzitiv4ik/repo-trials:0.1.0 \
+  --format '{{json .SBOM}}'
 ```
 
-`--version` must print the tagged version. If it prints something else, the
-`src/repotrials/__init__.py` bump was missed and the release should be yanked.
+The 0.1.0 digest is:
+
+```text
+sha256:292bf655e882762f2affc3c4c7d1a36ef2a949d2b272ad8d24678601e2516701
+```
+
+Pull by digest rather than by tag for an immutable image:
+
+```bash
+docker run --rm \
+  ghcr.io/pozzitiv4ik/repo-trials@sha256:292bf655e882762f2affc3c4c7d1a36ef2a949d2b272ad8d24678601e2516701 \
+  --version
+```
+
+That prints `RepoTrials 0.1.0`; `docker image inspect` on the same digest
+reports `Config.User` as `10001:10001`.
 
 ### Source distribution contents
 
-The sdist ships the schemas, docs, and `scripts/demo.py`; CI asserts this on
+The sdist ships the schemas, docs, and `scripts/demo.py`. `CI` asserts it on
 every run, and it is worth re-checking once from the published file:
 
 ```bash
-tar -tzf repotrials-0.2.0.tar.gz | grep -E 'schemas/|docs/|scripts/demo.py'
+tar -tzf repotrials-0.1.0.tar.gz | grep -E 'schemas/|docs/|scripts/demo.py'
 ```
+
+## Manual repository settings
+
+No workflow can set these. Status verified 2026-08-15.
+
+1. **Pages source.** Settings → Pages → Build and deployment → Source:
+   **GitHub Actions**. Still unset — the Pages API returns 404 for this
+   repository, so `docs.yml` builds the site and then fails at the deploy step
+   with "Pages is not enabled", and no site is published.
+2. **Homepage.** Settings → General → Website. Currently empty. Point it at the
+   Pages URL, but only after step 1 has produced a live site.
+3. **Social preview.** Settings → General → Social preview. Upload a 1280x640
+   raster render of `docs/assets/social-preview.svg` — GitHub's uploader takes
+   PNG, JPG, or GIF, not SVG. `docs/assets/README.md` has the headless-Chrome
+   command for rendering it. This setting cannot be read back through the API;
+   check it by opening the page.
+4. **Description** and **Topics.** Both are set: the description matches the
+   README's positioning line, and fifteen topics are attached. Revisit only if
+   the positioning copy changes.
+5. **Branch protection on `main`.** No ruleset and no protection rule exists
+   today. Adding one — require a pull request, require the `CI` and `CodeQL`
+   checks, require branches to be up to date, block force pushes and
+   deletions — is also what moves the OpenSSF Scorecard Branch-Protection score
+   off zero. Scorecard cannot read those settings with the default
+   `GITHUB_TOKEN`; supplying a read-only `administration` token as
+   `SCORECARD_TOKEN` and uncommenting `repo_token` in
+   `.github/workflows/scorecard.yml` is optional, and leaving it unset reports
+   the check as inconclusive rather than failed.
 
 ## If a release is wrong
 
-- **Never re-upload a fixed artifact under the same version.** PyPI rejects it,
-  and anyone who already installed the bad one keeps it.
-- Yank the release on PyPI (`Manage` → `Yank`). Yanking hides it from new
-  resolutions while leaving pinned installs working — the right tool for a
-  broken but not dangerous release.
-- Mark the GitHub Release as a pre-release or delete it, and say what happened
+- **Never delete or move a tag.** Task IDs, run manifests, and comparison
+  digests recorded against a revision are meant to stay resolvable.
+- Release assets can be replaced with `gh release upload --clobber`, and the
+  release itself can be marked as a pre-release or deleted. Say what happened
   in `CHANGELOG.md`.
-- Fix forward with a patch version. Do not delete or move the tag: task IDs,
-  run manifests, and comparison digests recorded against a revision are meant
-  to be resolvable later.
+- A container tag cannot be replaced; `container.yml` refuses to overwrite one.
+  Ship a new version.
+- Once PyPI publishing is enabled, a version cannot be re-uploaded there
+  either. Yank it (Manage → Yank), which hides it from new resolutions while
+  leaving pinned installs working, and fix forward with a patch version.
 - If the problem is a leaked credential or a security defect, follow
   `SECURITY.md` first and release second.
 
 ## After a release
 
-- Confirm the docs site rebuilt and shows the new version.
-- Confirm the Release body rendered the changelog section, not the fallback.
-- Open the next `## [Unreleased]` section if the changelog step did not already.
-- Update the install instructions in `README.md` only once the package is
-  genuinely installable from the index being described. Documented availability
-  that does not exist is the one release mistake this project cannot afford.
+1. Confirm all three assets are attached and that `SHA256SUMS` verifies.
+2. Publish the container image and record its digest.
+3. Open the next `## [Unreleased]` section if the changelog step did not.
+4. Change install instructions only for a channel the package is genuinely
+   installable from. `README.md` currently states that RepoTrials is not on
+   PyPI; that line changes after a successful `publish-pypi` run, not before.
