@@ -151,7 +151,10 @@ class PytestGuardTests(unittest.TestCase):
                 self.assertRaises(DemoError) as raised,
             ):
                 ensure_pytest()
-        self.assertIn(str(stub), str(raised.exception))
+        # ``shutil.which`` reports the name the way PATHEXT spells it, so Windows
+        # hands back ``python.EXE`` for a stub written as ``python.exe``. Path
+        # comparison is already case-insensitive there; a substring check is not.
+        self.assertIn(str(stub).casefold(), str(raised.exception).casefold())
 
     def test_run_demo_aborts_before_creating_the_output_directory(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
