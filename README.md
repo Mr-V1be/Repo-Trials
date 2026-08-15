@@ -41,13 +41,13 @@ real fix commit → sealed historical task → equal agent trials → hidden ver
 
 ## Try it in 60 seconds
 
-The self-contained demo creates a real two-commit repository, mines and validates one historical task, runs a no-op agent and a fixing agent, compares them, writes an HTML report, and exports the task for Harbor. It needs no model API key.
+The dependency-free demo creates a real two-commit repository, mines and validates one historical task, runs a no-op agent and a fixing agent, compares them, writes an HTML report, and exports the task for Harbor. It needs no model API key or third-party Python package.
 
 ```bash
-git clone --depth 1 --branch v0.1.0 https://github.com/PozziTiv4ik/Repo-Trials.git
+git clone --depth 1 https://github.com/PozziTiv4ik/Repo-Trials.git
 cd Repo-Trials
-python -m pip install -e ".[dev]"
-python scripts/demo.py
+python -m pip install .
+repotrials demo
 ```
 
 ```text
@@ -56,7 +56,7 @@ fix-agent    1/1 resolved
 delta       +100 percentage points
 ```
 
-That small example exercises the same public CLI used for a real repository: mining, BASE/RED/GOLD validation, sealed task material, agent trials, strict comparison, reporting, and Harbor export.
+That small example exercises the same public CLI used for a real repository: mining, BASE/RED/GOLD validation, sealed task material, agent trials, strict comparison, reporting, and Harbor export. Use `repotrials demo --output ./repotrials-demo` to keep the artifacts at a predictable path; `python scripts/demo.py` remains available in a source checkout.
 
 ## What v0.1 does
 
@@ -187,10 +187,12 @@ See the [configuration reference](docs/configuration.md) before running validati
 After accepting tasks, invoke a coding agent through a normal command and build reports:
 
 ```bash
-repotrials run --agent-command "<command>" --name <label> --unsafe-local
+repotrials run --agent-command '<command> {prompt}' --name <label> --unsafe-local
 repotrials report <run-group>
 repotrials compare <baseline-run-group> <candidate-run-group>
 ```
+
+`{prompt}` is replaced with the complete frozen task instruction as one process argument. `{instruction}` expands to a file containing the same instruction, and `{workspace}` expands to the disposable agent workspace. No shell expansion is required. See the tested command shapes and isolation notes in [agent recipes](docs/agent-recipes.md).
 
 `--unsafe-local` is a deliberate acknowledgement that the command is not sandboxed: it inherits the invoking user's host access and effective network. For an isolated downstream run, configure tasks for Harbor, revalidate them, and use `export-harbor` instead.
 
@@ -205,23 +207,6 @@ repotrials export-harbor --output .repotrials/exports/harbor
 The v0.1 export targets stable Harbor v0.20.0 task schema 1.3. A bounded `[[verifier.collect]]` hook writes the complete Git diff to `/tmp/agent.patch`, anchored to a sealed baseline SHA that is unchanged even if the agent creates commits. Harbor transfers that single patch into a separate no-network verifier, which rejects any path outside the task's exact frozen submission allowlist; it does not transfer the raw agent workspace. See [task and result formats](docs/task-format.md#harbor-export) for the exact handoff and image assumptions.
 
 Run `repotrials <command> --help` before automation. The CLI is still pre-release, and the help text is authoritative for flags and paths.
-
-### Run the complete demo
-
-The demo dynamically creates a real two-commit Git fixture and exercises the public CLI from mining through comparison and structural Harbor export. Install the development extra first because the generated target repository uses pytest:
-
-```bash
-python -m pip install -e ".[dev]"
-python scripts/demo.py
-```
-
-It runs one deliberate no-op and one fixing agent, then leaves a self-contained report in the printed temporary directory. The demo requires no model API key and is also useful as an installation smoke test.
-
-```text
-noop-agent   0/1 resolved
-fix-agent    1/1 resolved
-delta       +100 percentage points
-```
 
 ## The validation contract
 
@@ -257,6 +242,7 @@ Git history
 More detail is available in:
 
 - [Architecture](docs/architecture.md)
+- [Agent recipes](docs/agent-recipes.md)
 - [Mining and validation methodology](docs/methodology.md)
 - [Task and result formats](docs/task-format.md)
 - [Configuration reference](docs/configuration.md)
@@ -299,7 +285,7 @@ Bug reports, task-quality cases, documentation improvements, and narrowly scoped
 
 Security issues should follow [SECURITY.md](SECURITY.md), not a public bug report.
 
-Questions, implementation notes, and results from trying RepoTrials on a real codebase belong in [GitHub Discussions](https://github.com/PozziTiv4ik/Repo-Trials/discussions). If the project is useful, a GitHub star helps other agent builders find it.
+Questions, implementation notes, and results from trying RepoTrials on a real codebase belong in [GitHub Discussions](https://github.com/PozziTiv4ik/Repo-Trials/discussions). Share the reproducible setup—not private tasks, hidden tests, or gold patches. If the project is useful, a GitHub star helps other agent builders find it.
 
 ## License
 

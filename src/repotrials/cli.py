@@ -30,6 +30,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    demo_parser = subparsers.add_parser(
+        "demo", help="run a dependency-free end-to-end demo in a temporary repository"
+    )
+    demo_parser.add_argument("--output", type=Path, default=None)
+    demo_parser.set_defaults(handler=_cmd_demo)
+
     init_parser = subparsers.add_parser("init", help="initialize RepoTrials in a Git repository")
     init_parser.add_argument("path", nargs="?", default=None)
     init_parser.add_argument("--force", action="store_true")
@@ -90,7 +96,11 @@ def build_parser() -> argparse.ArgumentParser:
     run_parser = subparsers.add_parser(
         "run", help="run a command-based agent against accepted tasks"
     )
-    run_parser.add_argument("--agent-command", required=True)
+    run_parser.add_argument(
+        "--agent-command",
+        required=True,
+        help="agent command; supports {prompt}, {instruction}, and {workspace} placeholders",
+    )
     run_parser.add_argument("--name", required=True)
     run_parser.add_argument("--model", default="")
     run_parser.add_argument("--attempts", type=positive_int, default=None)
@@ -166,6 +176,18 @@ def _emit(args: argparse.Namespace, payload: Any, *, message: str | None = None)
         console.print_json(payload)
     elif message:
         console.success(message)
+
+
+def _cmd_demo(args: argparse.Namespace) -> int:
+    from .demo import render_summary, run_demo
+
+    result = run_demo(args.output, verbose=not args.json)
+    if args.json:
+        console.print_json(result)
+    else:
+        print()
+        print(render_summary(result))
+    return 0
 
 
 def _cmd_init(args: argparse.Namespace) -> int:

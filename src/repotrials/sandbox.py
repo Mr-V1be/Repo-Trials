@@ -230,6 +230,7 @@ def expand_command(
     *,
     workspace: str | os.PathLike[str],
     instruction_path: str | os.PathLike[str] | None = None,
+    instruction_text: str | None = None,
 ) -> tuple[str, ...]:
     """Expand documented placeholders without evaluating a shell."""
 
@@ -240,6 +241,7 @@ def expand_command(
     replacements = {
         "workspace": os.fspath(Path(workspace).resolve()),
         "instruction": os.fspath(Path(instruction_path).resolve()) if instruction_path else "",
+        "prompt": instruction_text or "",
     }
     try:
         return tuple(argument.format_map(replacements) for argument in arguments)
@@ -265,7 +267,12 @@ def run_agent_command(
     if environment:
         env.update(environment)
     return backend.run(
-        expand_command(command, workspace=workspace, instruction_path=instruction_path),
+        expand_command(
+            command,
+            workspace=workspace,
+            instruction_path=instruction_path,
+            instruction_text=instruction,
+        ),
         cwd=workspace,
         env=env,
         timeout=timeout,

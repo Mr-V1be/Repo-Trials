@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Dependency-free `repotrials demo` command that exercises mining, validation, agent runs, comparison, reporting, and Harbor export.
+- `{prompt}` agent-command placeholder plus integration recipes for Codex CLI, Claude Code, OpenCode, and Aider.
+- Trusted-publishing release workflow for PyPI, GitHub Releases, provenance attestations, and GHCR images.
+
 ## [0.1.0] - 2026-08-15
 
 ### Added

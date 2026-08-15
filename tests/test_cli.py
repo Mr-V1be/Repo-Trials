@@ -10,6 +10,7 @@ import unittest
 from pathlib import Path
 
 from repotrials.cli import main, nonnegative_float, percentage_points, positive_int
+from repotrials.demo import DemoError, run_demo
 
 
 def git(root: Path, *arguments: str) -> None:
@@ -91,6 +92,27 @@ class CliTests(unittest.TestCase):
         self.assertEqual(percentage_points("2.5"), 2.5)
         self.assertEqual(positive_int("1"), 1)
         self.assertEqual(nonnegative_float("0"), 0)
+
+    def test_dependency_free_demo_command(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw) / "demo"
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                code = main(["--json", "demo", "--output", str(output)])
+
+            self.assertEqual(code, 0)
+            payload = json.loads(stdout.getvalue())
+            self.assertEqual(payload["noop_resolved"], 0)
+            self.assertEqual(payload["fix_resolved"], 1)
+            self.assertEqual(payload["delta_pp"], 100.0)
+            self.assertTrue(Path(payload["report"]).is_file())
+
+    def test_demo_rejects_nonempty_output(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            output = Path(raw)
+            (output / "keep.txt").write_text("keep\n", encoding="utf-8")
+            with self.assertRaisesRegex(DemoError, "must be empty"):
+                run_demo(output, verbose=False)
 
     def test_complete_json_cli_pipeline(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

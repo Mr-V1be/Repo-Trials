@@ -14,6 +14,7 @@ from repotrials.sandbox import (
     SandboxError,
     collect_submission_patch,
     collect_submission_paths,
+    expand_command,
     initialize_synthetic_git,
     safe_extract_tar,
 )
@@ -21,6 +22,18 @@ from repotrials.validation import check_patch_integrity
 
 
 class SandboxTests(unittest.TestCase):
+    def test_command_placeholders_keep_prompt_in_one_argument(self) -> None:
+        prompt = "Fix the regression.\nDo not edit tests."
+        command = expand_command(
+            ("agent", "--prompt", "{prompt}", "--root", "{workspace}"),
+            workspace="workspace",
+            instruction_path="instruction.md",
+            instruction_text=prompt,
+        )
+
+        self.assertEqual(command[2], prompt)
+        self.assertEqual(Path(command[4]), Path("workspace").resolve())
+
     def test_git_disables_hooks_with_a_complete_platform_config_pair(self) -> None:
         completed = subprocess.CompletedProcess((), 0, stdout=b"", stderr=b"")
         workspace = Path("workspace")
