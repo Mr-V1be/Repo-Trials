@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="pl-title pl-desc">
+  <title id="pl-title">RepoTrials pipeline and trust boundary</title>
+  <desc id="pl-desc">Git history flows through candidate discovery, historical reconstruction, patch split into hidden tests and a gold patch, and BASE/RED/GOLD validation into a local oracle vault. Only a base tree export crosses into the sealed agent workspace; the agent's working-tree patch crosses back to a hidden verifier, which produces the report. Hidden tests, the gold patch, later history, commit IDs and remotes never enter the workspace.</desc>
+  <defs>
+    <linearGradient id="pl-background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07101f"/>
+      <stop offset="0.55" stop-color="#101a35"/>
+      <stop offset="1" stop-color="#17143a"/>
+    </linearGradient>
+    <linearGradient id="pl-accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#58e1c1"/>
+      <stop offset="1" stop-color="#8d83ff"/>
+    </linearGradient>
+    <!-- flow gradient in user space: a purely horizontal path has a zero-height
+         bounding box, so an objectBoundingBox gradient would not paint at all. -->
+    <linearGradient id="pl-flow" x1="50" y1="0" x2="1150" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#58e1c1"/>
+      <stop offset="1" stop-color="#8d83ff"/>
+    </linearGradient>
+    <pattern id="pl-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#91a4ca" stroke-opacity="0.08"/>
+    </pattern>
+    <filter id="pl-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="520" rx="20" fill="url(#pl-background)"/>
+  <rect width="1200" height="520" rx="20" fill="url(#pl-grid)"/>
+  <circle cx="1090" cy="30" r="180" fill="#6858ff" opacity="0.09"/>
+  <circle cx="110" cy="500" r="200" fill="#31c9aa" opacity="0.07"/>
+
+  <!-- header -->
+  <text x="50" y="48" fill="#f5f7ff" font-family="Inter,Segoe UI,Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="-0.4">From your git history to graded evidence</text>
+  <text x="50" y="74" fill="#7f8dab" font-family="Inter,Segoe UI,Helvetica Neue,Arial,sans-serif" font-size="13.5">RepoTrials builds the task, seals the oracle, and grades any command-line agent on behaviour.</text>
+
+  <!-- legend -->
+  <circle cx="938" cy="40" r="5" fill="#58e1c1"/>
+  <text x="952" y="45" fill="#91a1c1" font-family="Inter,Segoe UI,Helvetica Neue,Arial,sans-serif" font-size="12.5">evaluator side / oracle</text>
+  <circle cx="938" cy="64" r="5" fill="#8d83ff"/>
+  <text x="952" y="69" fill="#91a1c1" font-family="Inter,Segoe UI,Helvetica Neue,Arial,sans-serif" font-size="12.5">agent side</text>
+
+  <!-- ============ row 1: task construction (x 50..1150, 5 cards of 192, gaps of 35) ============ -->
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace">
+    <g>
+      <rect x="50" y="104" width="192" height="84" rx="13" fill="#141f38" stroke="#334466"/>
+      <rect x="50" y="118" width="4" height="56" rx="2" fill="#58e1c1"/>
+      <text x="72" y="136" fill="#58e1c1" font-size="14" font-weight="700">01  Git history</text>
+      <text x="72" y="162" fill="#91a1c1" font-size="11">your real fix commits</text>
+    </g>
+    <path d="M248 146h16" stroke="url(#pl-flow)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m261 139 7 7-7 7" fill="none" stroke="#72c8cf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g>
+      <rect x="277" y="104" width="192" height="84" rx="13" fill="#141f38" stroke="#334466"/>
+      <rect x="277" y="118" width="4" height="56" rx="2" fill="#58e1c1"/>
+      <text x="299" y="136" fill="#58e1c1" font-size="14" font-weight="700">02  Candidates</text>
+      <text x="299" y="162" fill="#91a1c1" font-size="11">impl + tests together</text>
+    </g>
+    <path d="M475 146h16" stroke="url(#pl-flow)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m488 139 7 7-7 7" fill="none" stroke="#72c8cf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g>
+      <rect x="504" y="104" width="192" height="84" rx="13" fill="#141f38" stroke="#334466"/>
+      <rect x="504" y="118" width="4" height="56" rx="2" fill="#58e1c1"/>
+      <text x="526" y="136" fill="#58e1c1" font-size="14" font-weight="700">03  Reconstruct</text>
+      <text x="526" y="162" fill="#91a1c1" font-size="11">rewind to pre-fix</text>
+    </g>
+    <path d="M702 146h16" stroke="url(#pl-flow)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m715 139 7 7-7 7" fill="none" stroke="#72c8cf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g>
+      <rect x="731" y="104" width="192" height="84" rx="13" fill="#141f38" stroke="#334466"/>
+      <rect x="731" y="118" width="4" height="56" rx="2" fill="#58e1c1"/>
+      <text x="753" y="136" fill="#58e1c1" font-size="14" font-weight="700">04  Patch split</text>
+      <text x="753" y="162" fill="#91a1c1" font-size="11">hidden tests | gold</text>
+    </g>
+    <path d="M929 146h16" stroke="url(#pl-flow)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m942 139 7 7-7 7" fill="none" stroke="#827fdf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g>
+      <rect x="958" y="104" width="192" height="84" rx="13" fill="#141f38" stroke="#334466"/>
+      <rect x="958" y="118" width="4" height="56" rx="2" fill="#58e1c1"/>
+      <text x="980" y="136" fill="#58e1c1" font-size="14" font-weight="700">05  Validate</text>
+      <text x="980" y="162" fill="#91a1c1" font-size="11">BASE · RED · GOLD</text>
+    </g>
+  </g>
+
+  <!-- connector: accepted tasks feed the vault -->
+  <path d="M1054 188V204q0 12-12 12H160q-12 0-12 12v58" fill="none" stroke="url(#pl-accent)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="m141 279 7 7 7-7" fill="none" stroke="#72c8cf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="300" y="206" fill="#7f8dab" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace" font-size="11.5">accepted tasks are sealed into the local vault</text>
+
+  <!-- ============ row 2: sealed evaluation ============ -->
+  <!-- trust boundary: the dashed region is the whole of what the agent ever sees -->
+  <rect x="364" y="276" width="224" height="128" rx="16" fill="#8d83ff" fill-opacity="0.06" stroke="#8d83ff" stroke-opacity="0.75" stroke-width="1.5" stroke-dasharray="7 6"/>
+  <text x="476" y="266" text-anchor="middle" fill="#a69eff" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace" font-size="11">everything the agent can see</text>
+
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace">
+    <g>
+      <rect x="50" y="292" width="196" height="96" rx="13" fill="#141f38" stroke="#334466"/>
+      <rect x="50" y="308" width="4" height="64" rx="2" fill="#58e1c1"/>
+      <text x="72" y="322" fill="#58e1c1" font-size="14" font-weight="700">06  Oracle vault</text>
+      <text x="72" y="348" fill="#91a1c1" font-size="11">hidden tests, gold patch</text>
+      <text x="72" y="368" fill="#7f8dab" font-size="11">content-addressed vault</text>
+    </g>
+
+    <path d="M252 340h116" stroke="url(#pl-flow)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m365 333 7 7-7 7" fill="none" stroke="#827fdf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="305" y="310" text-anchor="middle" fill="#7f8dab" font-size="11">base tree</text>
+    <text x="305" y="324" text-anchor="middle" fill="#7f8dab" font-size="11">export only</text>
+
+    <g>
+      <rect x="378" y="292" width="196" height="96" rx="13" fill="#141f38" stroke="#685eff" stroke-opacity="0.85"/>
+      <rect x="378" y="308" width="4" height="64" rx="2" fill="#8d83ff"/>
+      <text x="400" y="322" fill="#a69eff" font-size="14" font-weight="700">07  Agent workspace</text>
+      <text x="400" y="348" fill="#91a1c1" font-size="11">fresh one-commit repo</text>
+      <text x="400" y="368" fill="#7f8dab" font-size="11">no history, no oracle</text>
+    </g>
+
+    <path d="M580 340h114" stroke="url(#pl-flow)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m691 333 7 7-7 7" fill="none" stroke="#72c8cf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="647" y="310" text-anchor="middle" fill="#7f8dab" font-size="11">working-tree</text>
+    <text x="647" y="324" text-anchor="middle" fill="#7f8dab" font-size="11">patch only</text>
+
+    <g>
+      <rect x="706" y="292" width="196" height="96" rx="13" fill="#141f38" stroke="#334466"/>
+      <rect x="706" y="308" width="4" height="64" rx="2" fill="#58e1c1"/>
+      <text x="728" y="322" fill="#58e1c1" font-size="14" font-weight="700">08  Hidden verifier</text>
+      <text x="728" y="348" fill="#91a1c1" font-size="11">applies oracle, re-runs</text>
+      <text x="728" y="368" fill="#7f8dab" font-size="11">F2P / P2P transitions</text>
+    </g>
+
+    <path d="M908 340h32" stroke="url(#pl-flow)" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="m939 333 7 7-7 7" fill="none" stroke="#827fdf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g>
+      <rect x="962" y="292" width="188" height="96" rx="13" fill="#141f38" stroke="#685eff" stroke-opacity="0.6"/>
+      <rect x="962" y="308" width="4" height="64" rx="2" fill="#8d83ff"/>
+      <text x="984" y="322" fill="#a69eff" font-size="14" font-weight="700">09  Report</text>
+      <text x="984" y="348" fill="#91a1c1" font-size="11">pass@k with 95% CI</text>
+      <text x="984" y="368" fill="#7f8dab" font-size="11">JSON + HTML evidence</text>
+    </g>
+  </g>
+
+  <text x="50" y="436" fill="#8a97b5" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace" font-size="11.5">Hidden tests, the gold patch, later history, original commit IDs, and remotes never enter the workspace.</text>
+  <text x="50" y="458" fill="#7f8dab" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace" font-size="11.5">Patches are restricted to the historical fix's source paths; the verifier rejects anything outside it.</text>
+
+  <rect x="50" y="486" width="280" height="3" rx="1.5" fill="url(#pl-accent)" filter="url(#pl-glow)" opacity="0.85"/>
+</svg>

@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="446" viewBox="0 0 1040 446" role="img" aria-labelledby="td-title td-desc">
+  <title id="td-title">RepoTrials quickstart, replayed in a terminal</title>
+  <desc id="td-desc">Animated terminal cast of the RepoTrials quickstart: init, doctor, mine, candidates, validate, two agent runs, compare and report. The final frame shows noop-agent 0 of 1 against fix-agent 1 of 1, a delta of plus 100.0 percentage points, and a written HTML report.</desc>
+  <defs>
+    <linearGradient id="td-background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07101f"/>
+      <stop offset="0.55" stop-color="#101a35"/>
+      <stop offset="1" stop-color="#17143a"/>
+    </linearGradient>
+    <pattern id="td-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#91a4ca" stroke-opacity="0.08"/>
+    </pattern>
+    <clipPath id="td-screen">
+      <rect x="28" y="70" width="984" height="322"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1040" height="446" rx="18" fill="url(#td-background)"/>
+  <rect width="1040" height="446" rx="18" fill="url(#td-grid)"/>
+  <circle cx="980" cy="20" r="150" fill="#6858ff" opacity="0.10"/>
+  <circle cx="70" cy="440" r="170" fill="#31c9aa" opacity="0.07"/>
+
+  <!-- terminal chrome -->
+  <rect x="28" y="28" width="984" height="364" rx="14" fill="#0b1428" stroke="#334466"/>
+  <path d="M28 70H1012" stroke="#334466"/>
+  <circle cx="56" cy="49" r="6.5" fill="#ff5f57"/>
+  <circle cx="78" cy="49" r="6.5" fill="#febc2e"/>
+  <circle cx="100" cy="49" r="6.5" fill="#28c840"/>
+  <text x="520" y="54" text-anchor="middle" fill="#7f8dab" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace" font-size="13.5">repotrials demo</text>
+
+  <g clip-path="url(#td-screen)" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace">
+    <g opacity="1">  <!-- frame 1: 0s → 2s -->
+      <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.076471;0.084034;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials init</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  initialized ~/demo-repository/repotrials.toml</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#8d83ff" font-weight="700">INFO</tspan><tspan fill="#93a3c3">  Review repotrials.toml, then run `repotrials doctor`.</tspan></text>
+      <text xml:space="preserve" x="54" y="178" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="165" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 2: 2s → 4.8s -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.084034;0.091597;0.194118;0.201681;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials init</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  initialized ~/demo-repository/repotrials.toml</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#8d83ff" font-weight="700">INFO</tspan><tspan fill="#93a3c3">  Review repotrials.toml, then run `repotrials doctor`.</tspan></text>
+      <text xml:space="preserve" x="54" y="178" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials doctor</tspan></text>
+      <text xml:space="preserve" x="54" y="204" font-size="15"><tspan fill="#dfe6f7">RepoTrials doctor</tspan></text>
+      <text xml:space="preserve" x="54" y="230" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  git: /usr/bin/git</tspan></text>
+      <text xml:space="preserve" x="54" y="256" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  docker: /usr/bin/docker</tspan></text>
+      <text xml:space="preserve" x="54" y="282" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  harbor: not found (optional; export does not require it)</tspan></text>
+      <text xml:space="preserve" x="54" y="308" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  repository: ~/demo-repository</tspan></text>
+      <text xml:space="preserve" x="54" y="334" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  state: ~/demo-repository/.repotrials</tspan></text>
+      <text xml:space="preserve" x="54" y="360" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="347" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 3: 4.8s → 6.6s -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.201681;0.209244;0.269748;0.277311;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials mine --limit 20</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  stored 1 candidate(s), including 1 new</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="139" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 4: 6.6s → 9.2s -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.277311;0.284874;0.378992;0.386555;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials mine --limit 20</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  stored 1 candidate(s), including 1 new</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials candidates</tspan></text>
+      <text xml:space="preserve" x="54" y="178" font-size="15"><tspan fill="#dfe6f7">Candidates (1)</tspan></text>
+      <text xml:space="preserve" x="54" y="204" font-size="15"><tspan fill="#7f8dab">ID                              commit     source  tests  lines  title</tspan></text>
+      <text xml:space="preserve" x="54" y="230" font-size="15"><tspan fill="#3a4c74">------------------------------  ---------  ------  -----  -----  -------------------------</tspan></text>
+      <text xml:space="preserve" x="54" y="256" font-size="15"><tspan fill="#dfe6f7">candidate-8541e52c5bd7b3938c3a</tspan><tspan fill="#93a3c3">  9b66c5525  1       1      7      Fix floating point cart …</tspan></text>
+      <text xml:space="preserve" x="54" y="282" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="269" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 5: 9.2s → 11s -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.386555;0.394118;0.454622;0.462185;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials validate --repeats 1 --accept --unsafe-local</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  candidate-8541e52c5bd7b3938c3a: valid</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="139" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 6: 11s → 12.8s -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.462185;0.469748;0.530252;0.537815;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials validate --repeats 1 --accept --unsafe-local</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  candidate-8541e52c5bd7b3938c3a: valid</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials run --agent-command "$NOOP_AGENT" --name noop-agent --attempts 1 --unsafe-local</tspan></text>
+      <text xml:space="preserve" x="54" y="178" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  run noop-agent-20260815-081633-d9b0ac: </tspan><tspan fill="#ff8a9b" font-weight="700">0/1</tspan><tspan fill="#93a3c3"> trials resolved</tspan></text>
+      <text xml:space="preserve" x="54" y="204" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="191" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 7: 12.8s → 15s -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.537815;0.545378;0.622689;0.630252;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials validate --repeats 1 --accept --unsafe-local</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  candidate-8541e52c5bd7b3938c3a: valid</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials run --agent-command "$NOOP_AGENT" --name noop-agent --attempts 1 --unsafe-local</tspan></text>
+      <text xml:space="preserve" x="54" y="178" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  run noop-agent-20260815-081633-d9b0ac: </tspan><tspan fill="#ff8a9b" font-weight="700">0/1</tspan><tspan fill="#93a3c3"> trials resolved</tspan></text>
+      <text xml:space="preserve" x="54" y="204" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials run --agent-command "$FIX_AGENT" --name fix-agent --attempts 1 --unsafe-local</tspan></text>
+      <text xml:space="preserve" x="54" y="230" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  run fix-agent-20260815-081634-233fdf: </tspan><tspan fill="#58e1c1" font-weight="700">1/1</tspan><tspan fill="#93a3c3"> trials resolved</tspan></text>
+      <text xml:space="preserve" x="54" y="256" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="243" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 8: 15s → 17.8s -->
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.630252;0.637815;0.740336;0.747899;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials compare noop-agent-20260815-081633-d9b0ac fix-agent-20260815-081634-233fdf</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#dfe6f7">noop-agent-20260815-081633-d9b0ac → fix-agent-20260815-081634-233fdf</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#7f8dab">baseline  candidate  delta      paired tasks</tspan></text>
+      <text xml:space="preserve" x="54" y="178" font-size="15"><tspan fill="#3a4c74">--------  ---------  ---------  ------------</tspan></text>
+      <text xml:space="preserve" x="54" y="204" font-size="15"><tspan fill="#ff8a9b" font-weight="700">0.0%</tspan><tspan fill="#93a3c3">      </tspan><tspan fill="#58e1c1" font-weight="700">100.0%</tspan><tspan fill="#93a3c3">     </tspan><tspan fill="#58e1c1" font-weight="700">+100.0 pp</tspan><tspan fill="#93a3c3">  1</tspan></text>
+      <text xml:space="preserve" x="54" y="230" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="217" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+    <g opacity="0">  <!-- frame 9: 17.8s → 23.8s -->
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.747899;0.755462;0.992437;1" dur="23.8s" repeatCount="indefinite"/>
+      <text xml:space="preserve" x="54" y="100" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials compare noop-agent-20260815-081633-d9b0ac fix-agent-20260815-081634-233fdf</tspan></text>
+      <text xml:space="preserve" x="54" y="126" font-size="15"><tspan fill="#dfe6f7">noop-agent-20260815-081633-d9b0ac → fix-agent-20260815-081634-233fdf</tspan></text>
+      <text xml:space="preserve" x="54" y="152" font-size="15"><tspan fill="#7f8dab">baseline  candidate  delta      paired tasks</tspan></text>
+      <text xml:space="preserve" x="54" y="178" font-size="15"><tspan fill="#3a4c74">--------  ---------  ---------  ------------</tspan></text>
+      <text xml:space="preserve" x="54" y="204" font-size="15"><tspan fill="#ff8a9b" font-weight="700">0.0%</tspan><tspan fill="#93a3c3">      </tspan><tspan fill="#58e1c1" font-weight="700">100.0%</tspan><tspan fill="#93a3c3">     </tspan><tspan fill="#58e1c1" font-weight="700">+100.0 pp</tspan><tspan fill="#93a3c3">  1</tspan></text>
+      <text xml:space="preserve" x="54" y="230" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan><tspan fill="#e9eefb"> repotrials report fix-agent-20260815-081634-233fdf --output .repotrials/reports/demo</tspan></text>
+      <text xml:space="preserve" x="54" y="256" font-size="15"><tspan fill="#58e1c1" font-weight="700">OK</tspan><tspan fill="#93a3c3">  report written to .repotrials/reports/demo/report.html</tspan></text>
+      <text xml:space="preserve" x="54" y="282" font-size="15"><tspan fill="#58e1c1" font-weight="700">$</tspan></text>
+      <rect x="72.06" y="269" width="9" height="17" rx="1.5" fill="#58e1c1" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0;0;0.9" keyTimes="0;0.45;0.5;0.95;1" dur="1.1s" repeatCount="indefinite"/>
+      </rect>
+    </g>
+  </g>
+
+  <text x="28" y="420" fill="#66759a" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,DejaVu Sans Mono,monospace" font-size="12.5">Illustrative cast of the documented quickstart. Every command runs locally; nothing is uploaded.</text>
+</svg>
