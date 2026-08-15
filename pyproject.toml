@@ -50,6 +50,8 @@ repotrials = "repotrials.cli:main"
 Homepage = "https://github.com/PozziTiv4ik/Repo-Trials"
 Repository = "https://github.com/PozziTiv4ik/Repo-Trials.git"
 Issues = "https://github.com/PozziTiv4ik/Repo-Trials/issues"
+Documentation = "https://github.com/PozziTiv4ik/Repo-Trials/tree/main/docs"
+Discussions = "https://github.com/PozziTiv4ik/Repo-Trials/discussions"
 Changelog = "https://github.com/PozziTiv4ik/Repo-Trials/blob/main/CHANGELOG.md"
 
 [tool.setuptools]

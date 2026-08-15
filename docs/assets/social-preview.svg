@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">RepoTrials — SWE-bench for your own codebase</title>
+  <desc id="desc">Turn real fixes from Git history into sealed, reproducible coding-agent evaluations.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#06101f"/>
+      <stop offset="0.55" stop-color="#101a35"/>
+      <stop offset="1" stop-color="#1a123d"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#58e1c1"/>
+      <stop offset="1" stop-color="#8d83ff"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#91a4ca" stroke-opacity="0.075"/>
+    </pattern>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#background)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <circle cx="1110" cy="40" r="240" fill="#6858ff" opacity="0.13"/>
+  <circle cx="90" cy="640" r="270" fill="#31c9aa" opacity="0.09"/>
+  <path d="M95 566H1185" stroke="url(#accent)" stroke-width="2" opacity="0.28"/>
+
+  <g transform="translate(88 64)">
+    <rect width="68" height="68" rx="14" fill="url(#accent)"/>
+    <path d="M18 21h32M18 34h21M18 47h27" stroke="#07101f" stroke-width="6" stroke-linecap="round"/>
+    <text x="92" y="51" fill="#f7f9ff" font-family="Inter,Segoe UI,sans-serif" font-size="58" font-weight="750" letter-spacing="-1.5">RepoTrials</text>
+    <g transform="translate(870 8)">
+      <rect width="224" height="44" rx="22" fill="#152440" stroke="#58e1c1" stroke-opacity="0.55"/>
+      <text x="112" y="28" text-anchor="middle" fill="#8debd5" font-family="Inter,Segoe UI,sans-serif" font-size="15" font-weight="700" letter-spacing="1.4">OPEN SOURCE · LOCAL-FIRST</text>
+    </g>
+  </g>
+
+  <g transform="translate(88 186)" font-family="Inter,Segoe UI,sans-serif">
+    <text x="0" y="0" fill="#f7f9ff" font-size="59" font-weight="760" letter-spacing="-1.8">SWE-bench for your own codebase.</text>
+    <text x="0" y="54" fill="#b8c4df" font-size="25">Turn real fixes from Git history into sealed coding-agent evaluations.</text>
+  </g>
+
+  <g transform="translate(88 324)" font-family="ui-monospace,SFMono-Regular,Consolas,monospace">
+    <g>
+      <rect width="238" height="132" rx="16" fill="#121f38" stroke="#314769"/>
+      <text x="22" y="36" fill="#58e1c1" font-size="16" font-weight="700">01 · GIT HISTORY</text>
+      <text x="22" y="73" fill="#eef3ff" font-size="20">real fix commits</text>
+      <text x="22" y="102" fill="#8393b3" font-size="14">source + test changes</text>
+    </g>
+    <path d="M250 66h34" stroke="#65d8c5" stroke-width="3" stroke-linecap="round"/>
+    <path d="m278 59 9 7-9 7" fill="none" stroke="#65d8c5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(300)">
+      <rect width="238" height="132" rx="16" fill="#121f38" stroke="#314769"/>
+      <text x="22" y="36" fill="#58e1c1" font-size="16" font-weight="700">02 · VALIDATE</text>
+      <text x="22" y="73" fill="#eef3ff" font-size="20">BASE ✓  RED ✕  GOLD ✓</text>
+      <text x="22" y="102" fill="#8393b3" font-size="14">deterministic task checks</text>
+    </g>
+    <path d="M550 66h34" stroke="#76b9d1" stroke-width="3" stroke-linecap="round"/>
+    <path d="m578 59 9 7-9 7" fill="none" stroke="#76b9d1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(600)">
+      <rect width="238" height="132" rx="16" fill="#121f38" stroke="#3c4278"/>
+      <text x="22" y="36" fill="#9e96ff" font-size="16" font-weight="700">03 · RUN AGENTS</text>
+      <text x="22" y="73" fill="#eef3ff" font-size="20">same task + budget</text>
+      <text x="22" y="102" fill="#8393b3" font-size="14">repeatable private trials</text>
+    </g>
+    <path d="M850 66h34" stroke="#8985ea" stroke-width="3" stroke-linecap="round"/>
+    <path d="m878 59 9 7-9 7" fill="none" stroke="#8985ea" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(900)">
+      <rect width="238" height="132" rx="16" fill="#141d3b" stroke="#7d70ff" stroke-opacity="0.85"/>
+      <text x="22" y="36" fill="#aaa4ff" font-size="16" font-weight="700">04 · EVIDENCE</text>
+      <text x="22" y="73" fill="#eef3ff" font-size="20">pass@k + reports</text>
+      <text x="22" y="102" fill="#8393b3" font-size="14">compare agents fairly</text>
+    </g>
+  </g>
+
+  <g transform="translate(88 600)" font-family="Inter,Segoe UI,sans-serif" font-size="16">
+    <text fill="#8e9cbc">github.com/</text>
+    <text x="88" fill="#dce5f7" font-weight="650">PozziTiv4ik/Repo-Trials</text>
+    <text x="916" fill="#8e9cbc">Python 3.11+  ·  Apache-2.0</text>
+  </g>
+  <rect x="88" y="540" width="420" height="4" rx="2" fill="url(#accent)" filter="url(#glow)" opacity="0.65"/>
+  <rect x="88" y="540" width="420" height="4" rx="2" fill="url(#accent)"/>
+</svg>

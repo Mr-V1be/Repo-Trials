@@ -10,6 +10,8 @@
 
 <p align="center">
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/codeql.yml/badge.svg"></a>
+  <a href="https://github.com/PozziTiv4ik/Repo-Trials/releases/latest"><img alt="GitHub release" src="https://img.shields.io/github/v/release/PozziTiv4ik/Repo-Trials?sort=semver"></a>
   <a href="https://www.python.org/downloads/"><img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg"></a>
 </p>
@@ -20,6 +22,13 @@ RepoTrials turns a repository's own Git history into private, repeatable coding-
 real fix commit → sealed historical task → equal agent trials → hidden verifier → evidence
 ```
 
+<p align="center">
+  <a href="#try-it-in-60-seconds"><strong>Try the demo</strong></a> ·
+  <a href="#the-validation-contract">See how grading works</a> ·
+  <a href="#quickstart">Build your benchmark</a> ·
+  <a href="docs/threat-model.md">Read the threat model</a>
+</p>
+
 ### Why teams use it
 
 - **Behavioral grading:** real JUnit `FAIL_TO_PASS` and `PASS_TO_PASS`, never gold-diff similarity.
@@ -28,7 +37,26 @@ real fix commit → sealed historical task → equal agent trials → hidden ver
 - **Local by default:** private source and oracle data stay under `.repotrials/`; nothing is uploaded by RepoTrials.
 - **Runner-friendly:** invoke any command-based agent locally or export a standalone task with a separate [Harbor](https://github.com/harbor-framework/harbor) verifier.
 
-> **Project status:** pre-release v0.1. RepoTrials is under active development. Its command names and task schema may change before the first stable release. Do not use current scores as a security or procurement certification.
+> **Project status:** v0.1.0 is the first public release. RepoTrials is under active development, and its command names and task schema may change before 1.0. Do not use current scores as a security or procurement certification.
+
+## Try it in 60 seconds
+
+The self-contained demo creates a real two-commit repository, mines and validates one historical task, runs a no-op agent and a fixing agent, compares them, writes an HTML report, and exports the task for Harbor. It needs no model API key.
+
+```bash
+git clone --depth 1 --branch v0.1.0 https://github.com/PozziTiv4ik/Repo-Trials.git
+cd Repo-Trials
+python -m pip install -e ".[dev]"
+python scripts/demo.py
+```
+
+```text
+noop-agent   0/1 resolved
+fix-agent    1/1 resolved
+delta       +100 percentage points
+```
+
+That small example exercises the same public CLI used for a real repository: mining, BASE/RED/GOLD validation, sealed task material, agent trials, strict comparison, reporting, and Harbor export.
 
 ## What v0.1 does
 
@@ -87,9 +115,16 @@ The portable v0.1 evaluation contract targets Linux/amd64. The CLI can be instal
 Harbor and third-party coding agents are optional and are not bundled.
 The RepoTrials core has zero third-party runtime dependencies; contributor tools live in the `[dev]` extra.
 
-## Install from source
+## Install
 
-RepoTrials is not presented as a published package yet. Clone the repository, create a virtual environment, and install the core package:
+RepoTrials is not on PyPI yet. Install the v0.1.0 wheel directly from GitHub Releases:
+
+```bash
+python -m pip install https://github.com/PozziTiv4ik/Repo-Trials/releases/download/v0.1.0/repotrials-0.1.0-py3-none-any.whl
+repotrials --help
+```
+
+To inspect or contribute to the source, clone the repository and create a virtual environment:
 
 ```bash
 git clone https://github.com/PozziTiv4ik/Repo-Trials.git
@@ -264,10 +299,12 @@ Bug reports, task-quality cases, documentation improvements, and narrowly scoped
 
 Security issues should follow [SECURITY.md](SECURITY.md), not a public bug report.
 
+Questions, implementation notes, and results from trying RepoTrials on a real codebase belong in [GitHub Discussions](https://github.com/PozziTiv4ik/Repo-Trials/discussions). If the project is useful, a GitHub star helps other agent builders find it.
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).
 
 ## Citation
 
-Citation metadata is provided in [CITATION.cff](CITATION.cff). Until a versioned release exists, cite the exact Git commit when one is available; for an uncommitted source snapshot, record a SHA-256 digest of the archive used.
+Citation metadata is provided in [CITATION.cff](CITATION.cff). Cite the release version and record the exact Git commit used for an evaluation.

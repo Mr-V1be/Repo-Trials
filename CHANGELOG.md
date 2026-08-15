@@ -2,9 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project intends to follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after its first versioned release.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versioned releases follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-08-15
 
 ### Added
 
@@ -49,4 +51,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Documented the writable bind mount and image-default-user limitations of host Docker validation.
 - Documented that the Harbor verifier's UID/GID 65534 test subprocess cannot normally write to its root-owned repository workspace.
 
-There is no stable release yet.
+[Unreleased]: https://github.com/PozziTiv4ik/Repo-Trials/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/PozziTiv4ik/Repo-Trials/releases/tag/v0.1.0
