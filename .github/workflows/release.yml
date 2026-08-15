@@ -1,356 +1,132 @@
-# Release: build, attest, publish to PyPI, and cut a GitHub Release.
-#
-# ---------------------------------------------------------------------------
-# ONE-TIME MANUAL SETUP (repository owner; nothing here works until it is done)
-# ---------------------------------------------------------------------------
-# 1. PyPI trusted publisher. Sign in to PyPI and add a pending publisher at
-#    https://pypi.org/manage/account/publishing/ with exactly these values:
-#
-#        PyPI project name:  repotrials
-#        Owner:              PozziTiv4ik
-#        Repository name:    Repo-Trials
-#        Workflow name:      release.yml
-#        Environment name:   pypi
-#
-#    Repeat at https://test.pypi.org/manage/account/publishing/ using the
-#    environment name `testpypi` if you want the TestPyPI rehearsal path.
-#
-# 2. GitHub environments. Settings -> Environments -> New environment, twice:
-#    `pypi` and `testpypi`. Restrict `pypi` deployment branches/tags to the
-#    tag pattern `v*` and add yourself as a required reviewer, so a publish
-#    cannot happen without an explicit human approval.
-#
-# 3. No API token is required and none should be stored. Publishing uses
-#    OpenID Connect (trusted publishing): PyPI verifies the short-lived token
-#    minted by GitHub for this workflow in this environment. If a
-#    `PYPI_API_TOKEN` secret exists in this repository, delete it.
-#
-# Full runbook, including how to verify a published artifact:
-# docs/releasing.md
-#
-# Action pinning: third-party actions below are pinned to a major tag. Pinning
-# to a full commit SHA is preferred for a supply-chain-sensitive workflow, and
-# Dependabot (.github/dependabot.yml) already tracks the github-actions
-# ecosystem, so SHA pins stay updatable. Convert the `uses:` lines to
-# `owner/repo@<sha> # vX.Y.Z` when you are ready to maintain them.
-
 name: Release
 
 on:
   push:
-    tags: ["v*"]
-  workflow_dispatch:
-    inputs:
-      target:
-        description: "Where to publish. `none` builds and attests only."
-        type: choice
-        default: none
-        options:
-          - none
-          - testpypi
-          - pypi
+    tags:
+      - "v*"
 
 permissions:
-  contents: read
-
-concurrency:
-  group: release-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  contents: write
 
 jobs:
-  verify:
-    name: Verify before release
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-          cache: pip
-
-      - name: Install package and development tools
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
-
-      - name: Lint
-        run: python -m ruff check .
-
-      - name: Check formatting
-        run: python -m ruff format --check .
-
-      - name: Type-check
-        run: python -m mypy src/repotrials
-
-      - name: Run tests
-        run: python -m pytest --cov=repotrials --cov-report=term-missing
-
-      - name: Run end-to-end demo
-        run: python scripts/demo.py --output "${{ runner.temp }}/repotrials-demo"
-
-  build:
-    name: Build and attest distributions
-    needs: verify
+  build-and-publish:
+    name: Build and attach distributions
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    permissions:
-      contents: read
-      # Build provenance is written to the repository's attestation store and
-      # signed with a short-lived OIDC identity; both permissions are required.
-      id-token: write
-      attestations: write
-
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      prerelease: ${{ steps.version.outputs.prerelease }}
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@v6
+      - name: Check out tagged source
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
 
-      - name: Install packaging tools
-        run: python -m pip install --upgrade build twine
-
-      - name: Resolve and cross-check the release version
-        id: version
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF_NAME: ${{ github.ref_name }}
+      - name: Verify tag matches package version
+        shell: bash
         run: |
-          python - <<'PY' >> "$GITHUB_OUTPUT"
+          python - <<'PY'
           import os
           import pathlib
-          import re
-          import sys
           import tomllib
 
-          pyproject = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
-          declared = pyproject["project"]["version"]
-
-          init = pathlib.Path("src/repotrials/__init__.py").read_text(encoding="utf-8")
-          match = re.search(r'^__version__\s*=\s*"([^"]+)"', init, re.MULTILINE)
-          if match is None:
-              sys.exit("could not read __version__ from src/repotrials/__init__.py")
-          runtime = match.group(1)
-
-          if declared != runtime:
-              sys.exit(
-                  f"version mismatch: pyproject.toml has {declared!r}, "
-                  f"src/repotrials/__init__.py has {runtime!r}"
-              )
-
-          if os.environ["EVENT_NAME"] == "push":
-              tag = os.environ["REF_NAME"]
-              if tag != f"v{declared}":
-                  sys.exit(f"tag {tag!r} does not match packaged version {declared!r} (expected v{declared})")
-
-          # 0.x releases and PEP 440 pre-release segments are both marked as
-          # GitHub pre-releases: this project has not promised a stable line.
-          prerelease = declared.startswith("0.") or bool(
-              re.search(r"(a|b|rc|dev)\d*$", declared)
-          )
-          print(f"version={declared}")
-          print(f"prerelease={str(prerelease).lower()}")
+          data = tomllib.loads(pathlib.Path("pyproject.toml").read_text(encoding="utf-8"))
+          expected = f"v{data['project']['version']}"
+          actual = os.environ["GITHUB_REF_NAME"]
+          if actual != expected:
+              raise SystemExit(f"release tag {actual!r} does not match package version {expected!r}")
           PY
 
-      - name: Build wheel and source distribution
-        run: python -m build
-
-      - name: Validate distribution metadata
-        run: python -m twine check --strict dist/*
-
-      - name: Smoke-test the built wheel
+      - name: Build and validate distributions
         run: |
-          python -m venv "${{ runner.temp }}/repotrials-wheel"
-          "${{ runner.temp }}/repotrials-wheel/bin/python" -m pip install dist/*.whl
-          "${{ runner.temp }}/repotrials-wheel/bin/repotrials" --version
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine check dist/*
 
-      - name: Generate build provenance attestation
-        # Skipped for a `none` dry run so rehearsals do not write attestations
-        # for artifacts that are never published.
-        if: ${{ github.event_name == 'push' || inputs.target != 'none' }}
+      - name: Generate checksums
+        shell: bash
+        run: cd dist && sha256sum *.whl *.tar.gz > SHA256SUMS
+
+      - name: Create release when the tag was pushed directly
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "RepoTrials $GITHUB_REF_NAME" \
+              --generate-notes
+
+      - name: Attach wheel, source distribution, and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload "$GITHUB_REF_NAME" \
+            dist/*.whl dist/*.tar.gz dist/SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+      - name: Keep the distributions for the optional PyPI job
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-distributions
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  # Opt-in PyPI publication. Dormant until BOTH of these are done once, by hand:
+  #
+  #   1. https://pypi.org/manage/account/publishing/ -> add a pending publisher
+  #        PyPI project name: repotrials
+  #        Owner:             PozziTiv4ik
+  #        Repository:        Repo-Trials
+  #        Workflow:          release.yml
+  #        Environment:       pypi
+  #   2. Settings -> Secrets and variables -> Actions -> Variables ->
+  #        PUBLISH_TO_PYPI = true
+  #
+  # Until then this job is skipped and the release above behaves exactly as it
+  # does today. Trusted publishing uses short-lived OIDC credentials, so there
+  # is no API token to store or rotate.
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build-and-publish
+    if: vars.PUBLISH_TO_PYPI == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: pypi
+      url: https://pypi.org/p/repotrials
+    permissions:
+      id-token: write        # mint the OIDC token trusted publishing exchanges
+      attestations: write    # record build provenance for the published files
+      contents: read
+
+    steps:
+      - name: Download the distributions built from the tag
+        uses: actions/download-artifact@v8
+        with:
+          name: release-distributions
+          path: dist/
+
+      - name: Drop the checksum file
+        shell: bash
+        run: rm -f dist/SHA256SUMS
+
+      - name: Attest build provenance
         uses: actions/attest-build-provenance@v3
         with:
           subject-path: "dist/*"
 
-      - name: Upload distributions
-        uses: actions/upload-artifact@v7
-        with:
-          name: dist
-          path: dist/
-          if-no-files-found: error
-          retention-days: 14
-
-  publish-testpypi:
-    name: Publish to TestPyPI
-    needs: build
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'testpypi' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    environment:
-      name: testpypi
-      url: https://test.pypi.org/p/repotrials
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Download distributions
-        uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: dist
-
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/legacy/
+          attestations: true
           print-hash: true
-          # TestPyPI is a rehearsal index and its state is not authoritative.
-          skip-existing: true
-
-  publish-pypi:
-    name: Publish to PyPI
-    needs: build
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.target == 'pypi') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    environment:
-      name: pypi
-      url: https://pypi.org/p/repotrials
-
-    permissions:
-      contents: read
-      # Trusted publishing: the OIDC token replaces a stored API token.
-      id-token: write
-
-    steps:
-      - name: Download distributions
-        uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: dist
-
-      - name: Publish
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          print-hash: true
-
-  github-release:
-    name: Create GitHub Release
-    needs: [build, publish-pypi]
-    if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-
-      - name: Download distributions
-        uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: dist
-
-      - name: Assemble release notes from CHANGELOG.md
-        env:
-          RELEASE_VERSION: ${{ needs.build.outputs.version }}
-        run: |
-          python - <<'PY'
-          import hashlib
-          import os
-          import pathlib
-
-          version = os.environ["RELEASE_VERSION"]
-          repository = os.environ["GITHUB_REPOSITORY"]
-
-          changelog = pathlib.Path("CHANGELOG.md")
-          collected: list[str] = []
-          capturing = False
-          if changelog.is_file():
-              for line in changelog.read_text(encoding="utf-8").splitlines():
-                  if line.startswith("## "):
-                      if capturing:
-                          break
-                      label = line[3:].split(" - ")[0].strip().strip("[]")
-                      capturing = label == version
-                      continue
-                  if capturing:
-                      collected.append(line)
-
-          body = "\n".join(collected).strip()
-          if not body:
-              body = (
-                  f"No `## [{version}]` section was found in CHANGELOG.md. "
-                  "See [CHANGELOG.md]"
-                  f"(https://github.com/{repository}/blob/v{version}/CHANGELOG.md)."
-              )
-
-          digests = []
-          for path in sorted(pathlib.Path("dist").iterdir()):
-              if path.is_file():
-                  digest = hashlib.sha256(path.read_bytes()).hexdigest()
-                  digests.append(f"| `{path.name}` | `{digest}` |")
-
-          sections = [
-              body,
-              "",
-              "## Artifacts",
-              "",
-              "| File | SHA-256 |",
-              "| --- | --- |",
-              *digests,
-              "",
-              "## Verify this release",
-              "",
-              "Every artifact carries a signed SLSA-style build provenance attestation",
-              "produced by this workflow. Check it before installing:",
-              "",
-              "```bash",
-              f"gh attestation verify --repo {repository} <downloaded-file>",
-              "```",
-              "",
-              "## Status",
-              "",
-              "RepoTrials is pre-release software. Command names and the task schema may",
-              "change. Record task-content and task-contract digests alongside any score so",
-              "a format change fails loudly instead of drifting quietly.",
-          ]
-          pathlib.Path("release-notes.md").write_text("\n".join(sections) + "\n", encoding="utf-8")
-          PY
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          name: RepoTrials ${{ needs.build.outputs.version }}
-          tag_name: ${{ github.ref_name }}
-          body_path: release-notes.md
-          files: dist/*
-          fail_on_unmatched_files: true
-          draft: false
-          prerelease: ${{ needs.build.outputs.prerelease == 'true' }}

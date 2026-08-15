@@ -6,7 +6,7 @@ RepoTrials is currently pre-release software. Security fixes are made on the def
 
 ## Reporting a vulnerability
 
-Use the repository's [private vulnerability reporting form](https://github.com/PozziTiv4ik/Repo-Trials/security/advisories/new) when it is available. Do not file a public issue containing an exploit, credentials, private source code, hidden tests, or vault contents.
+Use the repository's enabled [private vulnerability reporting form](https://github.com/PozziTiv4ik/Repo-Trials/security/advisories/new). Do not file a public issue containing an exploit, credentials, private source code, hidden tests, or vault contents.
 
 If private vulnerability reporting is unavailable, open a minimal [public issue](https://github.com/PozziTiv4ik/Repo-Trials/issues/new) requesting a private maintainer contact without including technical details. Do not transmit sensitive details until a private channel has been established.
 

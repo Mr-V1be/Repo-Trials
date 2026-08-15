@@ -10,6 +10,9 @@
 
 <p align="center">
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/PozziTiv4ik/Repo-Trials/actions/workflows/codeql.yml/badge.svg"></a>
+  <a href="https://github.com/PozziTiv4ik/Repo-Trials/releases/latest"><img alt="GitHub release" src="https://img.shields.io/github/v/release/PozziTiv4ik/Repo-Trials?sort=semver"></a>
+  <a href="https://github.com/users/PozziTiv4ik/packages/container/package/repo-trials"><img alt="GHCR container" src="https://img.shields.io/badge/container-ghcr.io-2496ED.svg?logo=docker&logoColor=white"></a>
   <a href="https://github.com/PozziTiv4ik/Repo-Trials/tree/main/docs"><img alt="Documentation" src="https://img.shields.io/badge/docs-in%20repo-8d83ff.svg"></a>
   <a href="https://www.python.org/downloads/"><img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB.svg"></a>
   <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-blue.svg"></a>
@@ -21,6 +24,14 @@ RepoTrials finds the commits where your team fixed a bug and added a test, rewin
 ```text
 real fix commit → sealed task → equal trials → hidden verifier → evidence
 ```
+
+<p align="center">
+  <a href="#try-it-in-60-seconds"><strong>Try the demo</strong></a> ·
+  <a href="#the-validation-contract">See how grading works</a> ·
+  <a href="#requirements-and-install">Build your benchmark</a> ·
+  <a href="#point-it-at-any-coding-agent">Wire up your agent</a> ·
+  <a href="docs/threat-model.md">Read the threat model</a>
+</p>
 
 ## Try it in 60 seconds
 
@@ -149,7 +160,22 @@ Git, Python 3.11 or newer, whatever the target repository needs to install and t
 
 The portable v0.1 evaluation contract targets Linux/amd64. The CLI installs and runs on Windows and macOS, but a local validation there is not evidence of equivalence to the exported Linux image; use matching Docker validation before comparison or Harbor export.
 
-RepoTrials is not published on PyPI. Install from source:
+RepoTrials is not on PyPI. Install the released wheel straight from GitHub Releases:
+
+```bash
+python -m pip install https://github.com/PozziTiv4ik/Repo-Trials/releases/download/v0.1.0/repotrials-0.1.0-py3-none-any.whl
+repotrials --help
+```
+
+Or use the public Linux/amd64 container, which bundles Git and runs as an unprivileged user:
+
+```bash
+docker run --rm ghcr.io/pozzitiv4ik/repo-trials:0.1.0 --version
+```
+
+Pin the OCI digest instead of the version tag for an immutable pull. The published image carries BuildKit provenance and an SBOM — see the [package page](https://github.com/users/PozziTiv4ik/packages/container/package/repo-trials).
+
+To follow `main` or contribute, install from source:
 
 ```bash
 git clone https://github.com/PozziTiv4ik/Repo-Trials.git
@@ -158,6 +184,8 @@ python -m venv .venv && source .venv/bin/activate
 python -m pip install .
 repotrials --help
 ```
+
+> `repotrials demo` and the `uvx` one-liner above land in the next release. On v0.1.0 the equivalent is `python scripts/demo.py` from a source checkout.
 
 Then, in a **disposable clone** of the repository you want to measure — validation reconstructs historical states and executes their tests:
 
@@ -193,7 +221,7 @@ RepoTrials complements existing projects rather than replacing them. Most of the
 
 The reasonable posture is one public benchmark for general capability plus one private repository-specific set for transfer — not one instead of the other. [docs/comparison.md](docs/comparison.md) covers hosted services, polyglot benchmarks, and the cases where another tool is simply the better choice.
 
-> **Project status:** pre-release v0.1. RepoTrials is under active development. Its command names and task schema may change before the first stable release. Do not use current scores as a security or procurement certification.
+> **Project status:** v0.1.0 is the first public release. RepoTrials is under active development, and its command names and task schema may change before 1.0. Do not use current scores as a security or procurement certification.
 
 ## What v0.1 does not claim
 
@@ -231,7 +259,7 @@ Record the complete evaluation configuration alongside any score you keep: model
 
 [Quickstart](docs/quickstart.md) · [Agents](docs/agents.md) · [CI](docs/ci.md) · [FAQ](docs/faq.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md) · [Methodology](docs/methodology.md) · [Task and result formats](docs/task-format.md) · [Threat model](docs/threat-model.md) · [Comparison](docs/comparison.md) · [Roadmap](docs/roadmap.md) · [Releasing](docs/releasing.md)
 
-Run `repotrials <command> --help` before automating anything. The CLI is pre-release, and the help text is authoritative for flags and paths.
+Run `repotrials <command> --help` before automating anything. The CLI is still pre-1.0, and the help text is authoritative for flags and paths.
 
 ## Contributing
 
@@ -239,10 +267,12 @@ Bug reports, task-quality cases, documentation improvements, and narrowly scoped
 
 Security issues should follow [SECURITY.md](SECURITY.md), not a public bug report.
 
+Questions, implementation notes, and results from trying RepoTrials on a real codebase belong in [GitHub Discussions](https://github.com/PozziTiv4ik/Repo-Trials/discussions). A task that was mined but should not have been is the single most useful thing you can report.
+
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).
 
 ## Citation
 
-Citation metadata is provided in [CITATION.cff](CITATION.cff). Until a versioned release exists, cite the exact Git commit when one is available; for an uncommitted source snapshot, record a SHA-256 digest of the archive used.
+Citation metadata is provided in [CITATION.cff](CITATION.cff). Cite the release version and record the exact Git commit used for an evaluation.

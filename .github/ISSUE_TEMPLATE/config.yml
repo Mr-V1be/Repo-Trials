@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Ask a question
+    url: https://github.com/PozziTiv4ik/Repo-Trials/discussions/categories/q-a
+    about: Use GitHub Discussions for setup questions, ideas, and evaluation design help.
   - name: Report a security vulnerability
     url: https://github.com/PozziTiv4ik/Repo-Trials/security/advisories/new
     about: Use GitHub private vulnerability reporting; do not disclose security details publicly.

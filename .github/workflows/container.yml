@@ -1,0 +1,189 @@
+name: Publish container
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type publish-v0.1.0
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish-container-v0.1.0
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/pozzitiv4ik/repo-trials
+  RELEASE_REF: refs/tags/v0.1.0
+  RELEASE_SHA: 7bc0ce50b53591d9b39ea5db765c110d0da9b4ec
+  VERSION: 0.1.0
+  PYTHON_IMAGE: python:3.12-slim@sha256:dd29372629eeba2dd003fd9e9d35a5b8236c44727875a0364254b5127af88e65
+
+jobs:
+  publish:
+    name: Build and publish immutable image
+    if: >-
+      github.repository == 'PozziTiv4ik/Repo-Trials' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.confirmation == 'publish-v0.1.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out publisher configuration
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: publisher
+          persist-credentials: false
+
+      - name: Check out the immutable release
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_REF }}
+          path: release
+          persist-credentials: false
+
+      - name: Verify release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C publisher rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git -C release rev-parse HEAD)" = "$RELEASE_SHA"
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          project = tomllib.loads(
+              pathlib.Path("release/pyproject.toml").read_text(encoding="utf-8")
+          )
+          actual = project["project"]["version"]
+          expected = os.environ["VERSION"]
+          if actual != expected:
+              raise SystemExit(f"package version {actual!r} does not match {expected!r}")
+          PY
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+
+      - name: Build audit image without publishing
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ./release
+          file: ./publisher/Dockerfile
+          platforms: linux/amd64
+          load: true
+          pull: true
+          tags: repotrials:audit-v0.1.0
+          labels: |
+            org.opencontainers.image.created=2026-08-15T08:21:43Z
+            org.opencontainers.image.revision=${{ env.RELEASE_SHA }}
+            org.opencontainers.image.source=https://github.com/PozziTiv4ik/Repo-Trials
+            org.opencontainers.image.url=https://github.com/PozziTiv4ik/Repo-Trials
+            org.opencontainers.image.version=${{ env.VERSION }}
+          build-args: |
+            PYTHON_IMAGE=${{ env.PYTHON_IMAGE }}
+            REPOTRIALS_VERSION=${{ env.VERSION }}
+          provenance: false
+          sbom: false
+
+      - name: Smoke-test audit image
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(docker run --rm repotrials:audit-v0.1.0 --version)" = "RepoTrials 0.1.0"
+          test "$(docker image inspect repotrials:audit-v0.1.0 --format '{{.Config.User}}')" = "10001:10001"
+          test "$(docker image inspect repotrials:audit-v0.1.0 --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$RELEASE_SHA"
+          docker run --rm --entrypoint sh repotrials:audit-v0.1.0 -ec '
+            test "$(id -u)" = 10001
+            test "$(id -g)" = 10001
+            test "$HOME" = /home/repotrials
+            touch /workspace/.write-check
+          '
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Refuse to overwrite published tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          for tag in "$VERSION" "sha-$RELEASE_SHA"; do
+            if output="$(docker buildx imagetools inspect "$IMAGE:$tag" 2>&1)"; then
+              echo "Refusing to overwrite existing image tag: $IMAGE:$tag" >&2
+              exit 1
+            fi
+            if ! grep -Eiq 'not found|manifest unknown|name unknown|404' <<<"$output"; then
+              echo "Could not safely determine whether $IMAGE:$tag exists:" >&2
+              echo "$output" >&2
+              exit 1
+            fi
+          done
+
+      - name: Build and publish image
+        id: publish
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: ./release
+          file: ./publisher/Dockerfile
+          platforms: linux/amd64
+          push: true
+          pull: true
+          tags: |
+            ${{ env.IMAGE }}:${{ env.VERSION }}
+            ${{ env.IMAGE }}:sha-${{ env.RELEASE_SHA }}
+          labels: |
+            org.opencontainers.image.created=2026-08-15T08:21:43Z
+            org.opencontainers.image.revision=${{ env.RELEASE_SHA }}
+            org.opencontainers.image.source=https://github.com/PozziTiv4ik/Repo-Trials
+            org.opencontainers.image.url=https://github.com/PozziTiv4ik/Repo-Trials
+            org.opencontainers.image.version=${{ env.VERSION }}
+          build-args: |
+            PYTHON_IMAGE=${{ env.PYTHON_IMAGE }}
+            REPOTRIALS_VERSION=${{ env.VERSION }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Verify published image and attestations
+        env:
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+          for tag in "$VERSION" "sha-$RELEASE_SHA"; do
+            actual="sha256:$(
+              docker buildx imagetools inspect "$IMAGE:$tag" --raw |
+                sha256sum |
+                cut -d' ' -f1
+            )"
+            test "$actual" = "$DIGEST"
+          done
+
+          docker pull "$IMAGE@$DIGEST"
+          test "$(docker run --rm "$IMAGE@$DIGEST" --version)" = "RepoTrials 0.1.0"
+          test "$(docker image inspect "$IMAGE@$DIGEST" --format '{{.Config.User}}')" = "10001:10001"
+          test "$(docker image inspect "$IMAGE@$DIGEST" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')" = "$RELEASE_SHA"
+          docker run --rm --entrypoint sh "$IMAGE@$DIGEST" -ec '
+            test "$(id -u)" = 10001
+            test "$(id -g)" = 10001
+            test "$HOME" = /home/repotrials
+            touch /workspace/.write-check
+          '
+
+          sbom="$(docker buildx imagetools inspect "$IMAGE@$DIGEST" --format '{{json .SBOM}}')"
+          provenance="$(docker buildx imagetools inspect "$IMAGE@$DIGEST" --format '{{json .Provenance}}')"
+          test -n "$sbom" && test "$sbom" != "null"
+          test -n "$provenance" && test "$provenance" != "null"
+
+          echo "Published: $IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
