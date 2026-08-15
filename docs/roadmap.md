@@ -85,4 +85,4 @@ Open a [feature issue](https://github.com/PozziTiv4ik/Repo-Trials/issues/new?tem
 - format/CLI compatibility; and
 - the smallest useful increment.
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md).
+See [CONTRIBUTING.md](https://github.com/PozziTiv4ik/Repo-Trials/blob/main/CONTRIBUTING.md).

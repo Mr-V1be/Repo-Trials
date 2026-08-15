@@ -2,10 +2,10 @@
 
 RepoTrials v0.1 has four canonical JSON schemas:
 
-- [`task-public-v1.schema.json`](../schemas/task-public-v1.schema.json) for agent-safe task metadata;
-- [`task-private-v1.schema.json`](../schemas/task-private-v1.schema.json) for provenance and verifier artifacts; and
-- [`result-v1.schema.json`](../schemas/result-v1.schema.json) for one trial result; and
-- [`run-group-v1.schema.json`](../schemas/run-group-v1.schema.json) for the durable cohort lifecycle.
+- [`task-public-v1.schema.json`](https://github.com/PozziTiv4ik/Repo-Trials/blob/main/schemas/task-public-v1.schema.json) for agent-safe task metadata;
+- [`task-private-v1.schema.json`](https://github.com/PozziTiv4ik/Repo-Trials/blob/main/schemas/task-private-v1.schema.json) for provenance and verifier artifacts; and
+- [`result-v1.schema.json`](https://github.com/PozziTiv4ik/Repo-Trials/blob/main/schemas/result-v1.schema.json) for one trial result; and
+- [`run-group-v1.schema.json`](https://github.com/PozziTiv4ik/Repo-Trials/blob/main/schemas/run-group-v1.schema.json) for the durable cohort lifecycle.
 
 Consumers must inspect `schema_version` and reject unknown versions. The schemas are closed at the top level: fields not declared there are invalid. A few explicitly open nested objects, such as `expected`, `submission`, and parts of `result`, are extension points.
 

@@ -1,0 +1,116 @@
+site_name: RepoTrials
+site_url: https://pozzitiv4ik.github.io/Repo-Trials/
+site_description: >-
+  Turn Git history into private, reproducible coding-agent evaluations.
+  RepoTrials mines a repository's own commits into sealed tasks and grades any
+  command-line agent on FAIL_TO_PASS / PASS_TO_PASS test transitions.
+site_author: PozziTiv4ik
+copyright: Licensed under the Apache License 2.0.
+
+repo_url: https://github.com/PozziTiv4ik/Repo-Trials
+repo_name: PozziTiv4ik/Repo-Trials
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.tracking
+    - navigation.top
+    - navigation.instant
+    - navigation.instant.progress
+    - toc.follow
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+    - content.action.edit
+    - content.tabs.link
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/PozziTiv4ik/Repo-Trials
+      name: RepoTrials on GitHub
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - toc:
+      permalink: true
+
+# Navigation and anchor problems must fail the build. Plain link resolution is
+# reported at INFO level only because several reference pages intentionally link
+# to repository files that live outside `docs/` (`../CONTRIBUTING.md`,
+# `../schemas/*.schema.json`). Those targets are not part of the published site;
+# raise this back to `warn` once they are mirrored into `docs/` or rewritten as
+# absolute GitHub URLs.
+validation:
+  nav:
+    omitted_files: info
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: info
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: info
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - Integrate:
+      - Agents: agents.md
+      - CI: ci.md
+  - Reference:
+      - Configuration: configuration.md
+      - Task format: task-format.md
+  - Design:
+      - Methodology: methodology.md
+      - Architecture: architecture.md
+      - Threat model: threat-model.md
+  - Project:
+      - How it compares: comparison.md
+      - FAQ: faq.md
+      - Roadmap: roadmap.md
+      - Releasing: releasing.md

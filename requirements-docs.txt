@@ -1,0 +1,11 @@
+# Documentation site toolchain for https://pozzitiv4ik.github.io/Repo-Trials/
+#
+# These packages build the docs only. The RepoTrials runtime itself has zero
+# third-party dependencies and never imports anything listed here.
+#
+#   python -m pip install -r requirements-docs.txt
+#   python -m mkdocs serve
+#   python -m mkdocs build --strict
+
+mkdocs>=1.6,<2.0
+mkdocs-material>=9.5,<10.0

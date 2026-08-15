@@ -1,0 +1,81 @@
+/* RepoTrials documentation theme.
+   Palette taken from docs/assets/hero.svg: teal #58e1c1, violet #8d83ff,
+   deep navy #07101f. No external fonts or assets are referenced. */
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #0b1830;
+  --md-primary-fg-color--light: #1b2c4d;
+  --md-primary-fg-color--dark: #07101f;
+  --md-primary-bg-color: #f5f7ff;
+  --md-primary-bg-color--light: #b8c4df;
+
+  --md-accent-fg-color: #6858ff;
+  --md-accent-fg-color--transparent: rgba(104, 88, 255, 0.1);
+
+  --md-typeset-a-color: #0f7a68;
+  --rt-rule-color: rgba(11, 24, 48, 0.12);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 218;
+
+  --md-primary-fg-color: #07101f;
+  --md-primary-fg-color--light: #141f38;
+  --md-primary-fg-color--dark: #050b15;
+  --md-primary-bg-color: #f5f7ff;
+  --md-primary-bg-color--light: #b8c4df;
+
+  --md-accent-fg-color: #8d83ff;
+  --md-accent-fg-color--transparent: rgba(141, 131, 255, 0.14);
+
+  --md-typeset-a-color: #58e1c1;
+  --rt-rule-color: rgba(184, 196, 223, 0.16);
+}
+
+/* Keep the header readable in both schemes without a gradient repaint. */
+.md-header,
+.md-tabs {
+  background-color: var(--md-primary-fg-color);
+}
+
+/* Slightly tighter code so long CLI transcripts stay on one line. */
+.md-typeset pre > code {
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.md-typeset code {
+  border-radius: 0.15rem;
+}
+
+/* Terminal-style blocks read better with a calmer border than a full frame. */
+.md-typeset .highlight,
+.md-typeset .tabbed-set {
+  border-radius: 0.2rem;
+}
+
+.md-typeset table:not([class]) th {
+  background-color: var(--md-accent-fg-color--transparent);
+}
+
+/* Landing-page card grid: square off Material's default and use the accent. */
+.md-typeset .grid.cards > ul > li {
+  border-radius: 0.2rem;
+  border-color: var(--rt-rule-color);
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: none;
+}
+
+.md-typeset .grid.cards > ul > li > hr {
+  border-bottom-color: var(--rt-rule-color);
+}
+
+/* The hero illustration already carries its own dark background. */
+.md-typeset img[src$="hero.svg"] {
+  border-radius: 0.25rem;
+  display: block;
+  width: 100%;
+}
